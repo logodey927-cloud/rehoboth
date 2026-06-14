@@ -1,0 +1,55 @@
+{
+  "name": "client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/verify-pwa-build.mjs",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.2.2",
+    "@mui/icons-material": "^7.3.4",
+    "@mui/material": "^7.3.4",
+    "@mui/x-date-pickers": "^8.16.0",
+    "aos": "^3.0.0-beta.6",
+    "axios": "^1.12.2",
+    "dayjs": "^1.11.19",
+    "framer-motion": "^12.23.24",
+    "html5-qrcode": "^2.3.8",
+    "ldrs": "^1.1.9",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-hook-form": "^7.66.0",
+    "react-icons": "^5.5.0",
+    "react-quill-new": "^3.0.0",
+    "react-router-dom": "^7.9.4",
+    "react-slick": "^0.31.0",
+    "recharts": "^3.4.1",
+    "slick-carousel": "^1.8.1",
+    "socket.io-client": "^4.8.3",
+    "swiper": "^12.0.3",
+    "yup": "^1.7.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "baseline-browser-mapping": "^2.10.32",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "vite": "^7.1.7"
+  }
+}

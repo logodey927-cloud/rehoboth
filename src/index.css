@@ -1,0 +1,194 @@
+/* Import Google Font */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Mr+De+Haviland&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap");
+/* PWA safe-area insets (notch / home indicator) */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Set up the global font and colors */
+html,
+body {
+  font-family: "Montserrat", sans-serif;
+  background-color: #fff; /* dark blue background */
+  color: #e4e5df; /* light text */
+  scroll-behavior: smooth;
+  line-height: 1.6;
+}
+
+.lato-font {
+  font-family: "Lato", sans-serif !important;
+}
+
+.haviland {
+  font-family: '"Mr De Haviland", cursive';
+}
+
+.Raleway {
+  font-family: "Raleway", sans-serif;
+}
+
+/* Links */
+a {
+  color: #f58c00; /* orange accent */
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #c3cd76; /* yellow-green hover */
+}
+
+/* Utility Classes */
+.text-primary {
+  color: #f58c00;
+}
+
+.text-accent {
+  color: #abdf84;
+}
+
+.bg-primary {
+  background-color: #157d1c; /* green */
+}
+
+.bg-secondary {
+  background-color: #2e4b37; /* dark green tone */
+}
+
+/* Buttons (you can still override in MUI theme) */
+button {
+  font-family: "lato", sans-serif;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 10px 20px;
+  background-color: #f58c00;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #47672f;
+  color: #fff;
+}
+
+/* Default scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* 
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+    visibility: hidden;
+  }
+}
+
+.fade-in {
+  animation: fade-in 1.5s ease forwards;
+}
+
+.fade-out {
+  animation: fade-out 1.5s ease forwards;
+} */
+
+.fil1 {
+  fill: #157d1c;
+}
+.fil0 {
+  fill: #ff9000;
+}
+
+#_502680360 {
+  /* display: none; */
+  animation: animationOne -0.2s linear 1.2s infinite alternate;
+}
+
+#rnext {
+  /* display: none; */
+  animation: animationOne -0.6s linear 1s infinite alternate;
+}
+
+#wnext {
+  /* display: none; */
+  animation: animationOne 1s linear 1s infinite alternate;
+}
+
+@keyframes animationOne {
+  0% {
+    opacity: 0;
+    fill: #fff;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes animationTwo {
+  0% {
+    opacity: 0;
+    fill: #fff !important;
+  }
+
+  100% {
+    opacity: 1;
+    fill: #157d1c !important;
+  }
+}
+
+@keyframes animationThree {
+  0% {
+    opacity: 0;
+    fill: #fff;
+  }
+
+  100% {
+    opacity: 1;
+    fill: #157d1c;
+  }
+}

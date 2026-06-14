@@ -1,0 +1,95 @@
+<!DOCTYPE html> 
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Primary Meta Tags -->
+    <title>Rehoboth Health & Wellness Clinic - Relax • Revive • Reconnect</title>
+    <meta name="title" content="Rehoboth Health & Wellness Clinic - Relax • Revive • Reconnect" />
+    <meta name="description" content="Relax • Revive • Reconnect. Your premier destination for health and wellness in Rochdale, Greater Manchester, United Kingdom." />
+    <meta name="keywords" content="health, wellness, spa, massage, therapy, Rochdale, Manchester, UK" />
+    <meta name="author" content="Rehoboth Health & Wellness Clinic" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+    <meta name="geo.region" content="GB-MAN" />
+    <meta name="geo.placename" content="Rochdale, Greater Manchester" />
+    <meta name="geo.position" content="53.6167;-2.1553" />
+    <meta name="ICBM" content="53.6167, -2.1553" />
+    
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+
+    <!-- iOS Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1290-2796.png"
+      media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1179-2556.png"
+      media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-750-1334.png"
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-1536-2048.png"
+      media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="/splash/apple-splash-2048-1536.png"
+      media="(device-width: 1024px) and (device-height: 768px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" />
+
+    <!-- Mobile & App Meta Tags -->
+    <meta name="theme-color" content="#0C6E6D" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Rehoboth" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://rehobothhealthmassage.com/" />
+    <meta property="og:title" content="Rehoboth Health & Wellness Clinic - Relax • Revive • Reconnect" />
+    <meta property="og:description" content="Relax • Revive • Reconnect. Your premier destination for health and wellness in Rochdale, Greater Manchester, United Kingdom." />
+    <meta property="og:image" content="https://rehobothhealthmassage.com/assets/logo-BUSwqRuK.webp" />
+    <meta property="og:image:secure_url" content="https://rehobothhealthmassage.com/assets/logo-BUSwqRuK.webp" />
+    <meta property="og:image:type" content="image/webp" />
+    <meta property="og:site_name" content="Rehoboth Health & Wellness Clinic" />
+    <meta property="og:locale" content="en_GB" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://rehobothhealthmassage.com/" />
+    <meta name="twitter:title" content="Rehoboth Health & Wellness Clinic - Relax • Revive • Reconnect" />
+    <meta name="twitter:description" content="Relax • Revive • Reconnect. Your premier destination for health and wellness in Rochdale, Greater Manchester, United Kingdom." />
+    <meta name="twitter:image" content="https://rehobothhealthmassage.com/assets/logo-BUSwqRuK.webp" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://rehobothhealthmassage.com/" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&family=Mr+De+Haviland&family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=Great+Vibes&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Dev-only: unregister PWA service workers before Vite loads (stale SW breaks /admin lazy imports) -->
+    <script>
+      (function () {
+        var h = location.hostname;
+        if (h !== "localhost" && h !== "127.0.0.1" && !h.endsWith(".local")) return;
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) { r.unregister(); });
+          });
+        }
+        if ("caches" in window) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) { caches.delete(k); });
+          });
+        }
+      })();
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

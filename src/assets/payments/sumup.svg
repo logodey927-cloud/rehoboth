@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="48" viewBox="0 0 160 48" role="img" aria-label="SumUp">
+  <rect x="0" y="0" width="160" height="48" rx="10" fill="#FFFFFF"/>
+  <rect x="1" y="1" width="158" height="46" rx="9" fill="none" stroke="#E5E7EB"/>
+  <text x="80" y="31" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#1A73E8">SumUp</text>
+</svg>
+
+
