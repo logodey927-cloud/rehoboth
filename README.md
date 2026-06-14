@@ -216,3 +216,4 @@ Theme colors and typography are defined in `src/theme.js`:
 ---
 
 **For backend documentation, see [../server/README.md](../server/README.md)**
+# rehoboth
