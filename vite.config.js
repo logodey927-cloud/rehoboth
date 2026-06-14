@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** Stamp a unique SW version and inject API origin on each production build. */
-function pwaSwVersionPlugin() {
+function pwaSwVersionPlugin(apiUrl) {
   return {
     name: "pwa-sw-version",
     apply: "build",
@@ -20,7 +20,6 @@ function pwaSwVersionPlugin() {
         `const SW_VERSION = "${buildId}"`
       );
 
-      const apiUrl = process.env.VITE_API_URL;
       if (!apiUrl) {
         throw new Error("VITE_API_URL is required for production builds (service worker API caching).");
       }
@@ -32,8 +31,12 @@ function pwaSwVersionPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), pwaSwVersionPlugin()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, __dirname, "");
+  const apiUrl = env.VITE_API_URL || process.env.VITE_API_URL;
+
+  return {
+  plugins: [react(), pwaSwVersionPlugin(apiUrl)],
   server: {
     host: true,
     port: 5173,
@@ -59,4 +62,5 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 800,
   },
+};
 });
