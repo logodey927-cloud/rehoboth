@@ -1,36 +1,9 @@
 // client/src/api/api.jsx
 import axios from "axios";
-
-// Determine API base URL based on environment
-const getBaseURL = () => {
-  const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
-
-  // Production domain — always use the real API
-  if (
-    hostname === "rehobothhealthmassage.com" ||
-    hostname === "www.rehobothhealthmassage.com" ||
-    import.meta.env.MODE === "production" ||
-    import.meta.env.PROD
-  ) {
-    return "https://api.rehobothhealthmassage.com/api";
-  }
-
-  // Dev: use VITE_API_URL from .env, but replace "localhost" with the actual
-  // hostname so that mobile devices on the same WiFi reach the dev server.
-  if (import.meta.env.VITE_API_URL) {
-    const envUrl = import.meta.env.VITE_API_URL;
-    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-      return envUrl.replace("localhost", hostname).replace("127.0.0.1", hostname);
-    }
-    return envUrl;
-  }
-
-  // Fallback: derive API origin from whatever host served the page
-  return `http://${hostname}:5000/api`;
-};
+import { getApiBaseUrl } from "../config/env.js";
 
 const api = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: getApiBaseUrl(),
   timeout: 30000, // 30 second timeout to better handle Supabase latency
   headers: {
     'Content-Type': 'application/json',

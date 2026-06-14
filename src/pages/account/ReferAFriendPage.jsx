@@ -5,13 +5,10 @@ import { getMyReferrals } from "../../api/api";
 import ReferralShareCard from "../../components/referrals/ReferralShareCard";
 import HowReferralsWorkWidget from "../../components/referrals/HowReferralsWorkWidget";
 import ReferralsTable from "../../components/referrals/ReferralsTable";
+import { getSiteUrl } from "../../config/env.js";
 
 function buildReferralUrl(code) {
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://rehobothhealthmassage.com";
-  return `${origin}/register?ref=${code}`;
+  return `${getSiteUrl()}/register?ref=${code}`;
 }
 
 export default function ReferAFriendPage() {

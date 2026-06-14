@@ -22,13 +22,21 @@ const PRECACHE_URLS = [
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const API_ORIGIN = "https://api.rehobothhealthmassage.com";
+const API_ORIGIN = "__VITE_API_ORIGIN__";
+
+function apiHostname() {
+  try {
+    return new URL(API_ORIGIN).hostname;
+  } catch {
+    return "";
+  }
+}
 
 function isPublicApiRead(request) {
   if (request.method !== "GET") return false;
   try {
     const url = new URL(request.url);
-    if (url.hostname !== "api.rehobothhealthmassage.com") return false;
+    if (url.hostname !== apiHostname()) return false;
     return /^\/(services|team|blog|reviews|vouchers\/purchase|social-links|site-settings\/public|reviews\/stats)/.test(
       url.pathname
     );
@@ -40,7 +48,7 @@ function isPublicApiRead(request) {
 function isNetworkOnly(request) {
   try {
     const url = new URL(request.url);
-    if (url.hostname !== "api.rehobothhealthmassage.com") return false;
+    if (url.hostname !== apiHostname()) return false;
     // Never cache auth, payments, uploads, chat, appointments, admin, socket.io
     return /\/(auth|users|upload|stripe|paypal|appointments|chat|newsletter|contact|admin|socket\.io)/.test(
       url.pathname

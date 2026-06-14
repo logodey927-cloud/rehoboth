@@ -27,10 +27,7 @@ import {
   adminGetChatPresence,
 } from "../../api/api";
 import HeroPageSection from "../../components/sections/HeroPageSection";
-
-const SERVER_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace("/api", "")
-  : "http://localhost:5000";
+import { getServerOrigin } from "../../config/env.js";
 
 const STATUS_CONFIG = {
   ai:           { label: "AI",       color: "secondary" },
@@ -335,7 +332,7 @@ export default function LiveChatPage() {
   // Socket.IO — stable connection; never reconnects just because thread selection changes
   useEffect(() => {
     const token = localStorage.getItem("admin_token") || "";
-    const socket = io(SERVER_URL, {
+    const socket = io(getServerOrigin(), {
       auth: { token },
       transports: ["websocket", "polling"],
     });

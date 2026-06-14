@@ -1,8 +1,5 @@
 import { io } from "socket.io-client";
-
-const SERVER_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace("/api", "")
-  : "http://localhost:5000";
+import { getServerOrigin } from "../config/env.js";
 
 let socket = null;
 
@@ -16,7 +13,7 @@ export function getChatSocket(token) {
     return socket;
   }
 
-  socket = io(SERVER_URL, {
+  socket = io(getServerOrigin(), {
     auth: { token: token || "" },
     transports: ["websocket", "polling"],
     autoConnect: true,

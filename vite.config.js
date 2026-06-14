@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Stamp a unique SW version on each production build so caches invalidate. */
+/** Stamp a unique SW version and inject API origin on each production build. */
 function pwaSwVersionPlugin() {
   return {
     name: "pwa-sw-version",
@@ -19,6 +19,14 @@ function pwaSwVersionPlugin() {
         /const SW_VERSION = "[^"]+"/,
         `const SW_VERSION = "${buildId}"`
       );
+
+      const apiUrl = process.env.VITE_API_URL;
+      if (!apiUrl) {
+        throw new Error("VITE_API_URL is required for production builds (service worker API caching).");
+      }
+      const apiOrigin = new URL(apiUrl.replace(/\/api\/?$/, "")).origin;
+      source = source.replace("__VITE_API_ORIGIN__", apiOrigin);
+
       writeFileSync(swPath, source);
     },
   };

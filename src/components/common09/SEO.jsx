@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { getSiteUrl } from "../../config/env.js";
 
 const SITE_NAME = "Rehoboth Health & Wellness Clinic";
 const DEFAULT_DESCRIPTION = "Relax • Revive • Reconnect. Your premier destination for health and wellness in Rochdale, Greater Manchester, United Kingdom.";
-const BASE_URL = typeof window !== "undefined" ? window.location.origin : "https://rehobothhealthmassage.com";
-const DEFAULT_OG_IMAGE = "https://rehobothhealthmassage.com/assets/logo-BUSwqRuK.webp";
 
 export default function SEO({ 
   title, 
@@ -14,9 +13,10 @@ export default function SEO({
   keywords 
 }) {
   const location = useLocation();
-  const currentUrl = `${BASE_URL}${location.pathname}`;
+  const baseUrl = getSiteUrl();
+  const currentUrl = `${baseUrl}${location.pathname}`;
   const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
-  const ogImage = image || DEFAULT_OG_IMAGE;
+  const ogImage = image || `${baseUrl}/assets/logo-BUSwqRuK.webp`;
 
   useEffect(() => {
     // Update document title
