@@ -1,10 +1,10 @@
 // NavigationData.jsx - Comprehensive navigation data for the spa website
 export const navigationData = {
   brand: {
-    name: "Rehoboth Health & Wellness",
+    name: "Rehoboth Health & Wellness Clinic",
     nameSubtitle: "RELAX, REVIVE, RECONNECT",
     logo: "/assets/images/logo.webp",
-    tagline: "Your Wellness Journey Starts Here",
+    tagline: "RELAX, REVIVE, RECONNECT",
   },
   mainNav: [
     {
@@ -91,9 +91,9 @@ export const navigationData = {
     { platform: "YouTube", href: "#", icon: "youtube" },
   ],
   contactInfo: {
-    phone: "+1 (555) 123-4567",
-    email: "info@rehobothspa.com",
-    address: "123 Wellness Street, Spa City, SC 12345",
+    phone: "07759221176",
+    email: "rehobothwellnessclinic@gmail.com",
+    address: "Rochdale, Greater Manchester, United Kingdom",
     hours: "Mon-Sat: 9AM-8PM, Sun: 10AM-6PM",
   },
 };
