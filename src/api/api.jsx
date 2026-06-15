@@ -15,9 +15,43 @@ export function unwrapApiData(response) {
   return response?.data?.data ?? response?.data;
 }
 
-/** User-facing message from API error responses. */
-export function getApiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
+/** Flatten API validation `details` into `{ field: message }`. */
+export function getApiFieldErrors(error) {
+  const details = error?.response?.data?.details;
+  if (!details || typeof details !== "object") return {};
+
+  return Object.fromEntries(
+    Object.entries(details).map(([field, errs]) => {
+      const list = Array.isArray(errs) ? errs : [errs];
+      const message = list
+        .filter(Boolean)
+        .map((e) => (typeof e === "string" ? e : e.message))
+        .filter(Boolean)
+        .join(" ");
+      return [field, message];
+    }).filter(([, message]) => message)
+  );
+}
+
+function messagesFromValidationDetails(details) {
+  if (!details || typeof details !== "object") return null;
+
+  const messages = Object.values(details).flatMap((errs) => {
+    const list = Array.isArray(errs) ? errs : [errs];
+    return list
+      .filter(Boolean)
+      .map((e) => (typeof e === "string" ? e : e.message))
+      .filter(Boolean);
+  });
+
+  return messages.length ? messages.join(" ") : null;
+}
+
+/** User-facing message from API error responses (prefers field-level validation details). */
+export function getApiErrorMessage(error, fallback = "Something went wrong. Please try again.") {
   const body = error?.response?.data;
+  const fromDetails = messagesFromValidationDetails(body?.details);
+  if (fromDetails) return fromDetails;
   return body?.message || body?.error || error?.message || fallback;
 }
 
@@ -208,8 +242,8 @@ export const subscribeNewsletter = (email) => api.post("/newsletter", { email })
 export const getSubscribers = () => api.get("/newsletter");
 
 // Auth API
-export const loginAdmin = (username, password) => 
-  api.post("/auth/login", { username, password });
+export const loginAdmin = (email, password) =>
+  api.post("/auth/login", { email, password });
 
 export const forgotPassword = (email) =>
   api.post("/auth/forgot-password", { email });

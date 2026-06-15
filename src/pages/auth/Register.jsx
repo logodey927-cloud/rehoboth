@@ -6,7 +6,7 @@ import {
 import { Visibility, VisibilityOff, Email, Lock, Person, Phone } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useUserAuth } from "../../contexts/UserAuthContext";
-import { registerUser, getApiErrorMessage, unwrapApiData } from "../../api/api";
+import { registerUser, getApiErrorMessage, getApiFieldErrors, unwrapApiData } from "../../api/api";
 import { swalSuccess, swalError } from "../../utils/swal";
 import logo from "../../assets/images/logo.webp";
 import registerBg from "../../assets/images/bg-r.png";
@@ -39,17 +39,25 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name } = e.target;
+    setForm({ ...form, [name]: e.target.value });
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     if (form.password !== form.confirmPassword) return setError("Passwords do not match");
-    if (form.password.length < 8) return setError("Password must be at least 8 characters");
-    if (!form.address?.trim() || form.address.trim().length < 5) {
-      return setError("Please enter a valid address (at least 5 characters).");
-    }
 
     setSubmitting(true);
     try {
@@ -72,6 +80,7 @@ export default function Register() {
         navigate("/login", { replace: true, state: { email: form.email } });
       }
     } catch (err) {
+      setFieldErrors(getApiFieldErrors(err));
       const msg = getApiErrorMessage(err, "Registration failed. Please try again.");
       setError(msg);
       swalError("Registration Failed", msg);
@@ -131,6 +140,8 @@ export default function Register() {
                   fullWidth label="First Name" name="first_name"
                   value={form.first_name} onChange={handleChange}
                   required size="small"
+                  error={Boolean(fieldErrors.first_name)}
+                  helperText={fieldErrors.first_name}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start"><Person fontSize="small" color="action" /></InputAdornment>
@@ -141,6 +152,8 @@ export default function Register() {
                   fullWidth label="Last Name" name="last_name"
                   value={form.last_name} onChange={handleChange}
                   required size="small"
+                  error={Boolean(fieldErrors.last_name)}
+                  helperText={fieldErrors.last_name}
                 />
               </Box>
 
@@ -148,6 +161,8 @@ export default function Register() {
                 fullWidth label="Email Address" name="email" type="email"
                 value={form.email} onChange={handleChange}
                 required size="small" sx={{ mb: 2 }}
+                error={Boolean(fieldErrors.email)}
+                helperText={fieldErrors.email}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start"><Email fontSize="small" color="action" /></InputAdornment>
@@ -161,6 +176,8 @@ export default function Register() {
                   fullWidth label="Phone (optional)" name="phone"
                   value={form.phone} onChange={handleChange}
                   size="small"
+                  error={Boolean(fieldErrors.phone)}
+                  helperText={fieldErrors.phone}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start"><Phone fontSize="small" color="action" /></InputAdornment>
@@ -198,7 +215,8 @@ export default function Register() {
                 type={showPassword ? "text" : "password"}
                 value={form.password} onChange={handleChange}
                 required size="small" sx={{ mb: 2 }}
-                helperText="At least 8 characters"
+                error={Boolean(fieldErrors.password)}
+                helperText={fieldErrors.password}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start"><Lock fontSize="small" color="action" /></InputAdornment>

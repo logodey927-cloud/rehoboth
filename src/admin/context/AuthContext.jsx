@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { loginAdmin, clearAdminSessionStorage, resetAdminSessionRedirectGuard } from "../../api/api";
+import { loginAdmin, clearAdminSessionStorage, resetAdminSessionRedirectGuard, unwrapApiData, getApiErrorMessage } from "../../api/api";
 
 const AuthContext = createContext(null);
 
@@ -47,20 +47,25 @@ export function AuthProvider({ children }) {
     try {
       const response = await loginAdmin(username, password);
       if (response.data.success) {
-        if (!response.data.token) {
+        const payload = unwrapApiData(response);
+        if (payload?.requires2FA) {
+          return { success: false, error: payload.message || "Two-factor authentication is required." };
+        }
+        const accessToken = payload?.accessToken;
+        if (!accessToken) {
           return { success: false, error: "Login failed: no session token received." };
         }
         setIsAuthenticated(true);
-        setUser(response.data.user);
+        setUser(payload.user);
         localStorage.setItem("admin_authenticated", "true");
-        localStorage.setItem("admin_user", JSON.stringify(response.data.user));
-        localStorage.setItem("admin_token", response.data.token);
+        localStorage.setItem("admin_user", JSON.stringify(payload.user));
+        localStorage.setItem("admin_token", accessToken);
         resetAdminSessionRedirectGuard();
         return { success: true };
       }
-      return { success: false, error: response.data.error || "Login failed" };
+      return { success: false, error: response.data.message || "Login failed" };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || "Network error. Please try again.";
+      const errorMessage = getApiErrorMessage(error, "Network error. Please try again.");
       return { success: false, error: errorMessage };
     }
   };
