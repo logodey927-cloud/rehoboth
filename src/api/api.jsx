@@ -685,19 +685,19 @@ export const adminDeleteChatFaq   = (id)           => api.delete(`/admin/chat/fa
 export const adminGetChatPresence = ()             => api.get("/admin/chat/presence");
 
 // ── CRM — funnel & contacts ───────────────────────────────────────────────────
-export const crmGetFunnel       = ()              => api.get("/crm/funnel");
-export const crmGetContacts     = (params = {})   => api.get("/crm/contacts", { params });
-export const crmGetContact      = (id)            => api.get(`/crm/contacts/${id}`);
-export const crmUpdateContact   = (id, data)      => api.patch(`/crm/contacts/${id}`, data);
-export const crmAdvanceStage    = (id, data)      => api.post(`/crm/contacts/${id}/advance`, data);
+export const crmGetFunnel       = ()              => api.get("/admin/crm/funnel");
+export const crmGetContacts     = (params = {})   => api.get("/admin/crm/contacts", { params });
+export const crmGetContact      = (id)            => api.get(`/admin/crm/contacts/${id}`);
+export const crmUpdateContact   = (id, data)      => api.patch(`/admin/crm/contacts/${id}`, data);
+export const crmAdvanceStage    = (id, data)      => api.post(`/admin/crm/contacts/${id}/advance`, data);
 
 // ── Campaigns ─────────────────────────────────────────────────────────────────
-export const campaignGetSummary    = ()              => api.get("/campaigns/summary");
-export const campaignList          = (params = {})   => api.get("/campaigns", { params });
-export const campaignGetById       = (id)            => api.get(`/campaigns/${id}`);
-export const campaignCreate        = (data)          => api.post("/campaigns", data);
-export const campaignUpdate        = (id, data)      => api.patch(`/campaigns/${id}`, data);
-export const campaignDelete        = (id)            => api.delete(`/campaigns/${id}`);
-export const campaignGetPerformance = (id, params)   => api.get(`/campaigns/${id}/performance`, { params });
+export const campaignGetSummary    = ()              => api.get("/admin/campaigns/summary");
+export const campaignList          = (params = {})   => api.get("/admin/campaigns", { params });
+export const campaignGetById       = (id)            => api.get(`/admin/campaigns/${id}`);
+export const campaignCreate        = (data)          => api.post("/admin/campaigns", data);
+export const campaignUpdate        = (id, data)      => api.patch(`/admin/campaigns/${id}`, data);
+export const campaignDelete        = (id)            => api.delete(`/admin/campaigns/${id}`);
+export const campaignGetPerformance = (id, params)   => api.get(`/admin/campaigns/${id}/performance`, { params });
 
 export default api;

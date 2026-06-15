@@ -23,6 +23,8 @@ export function applyLegacyAdminResponse(body, url = '') {
     if (body.meta?.unreadCount != null) {
       body.unreadCount = body.meta.unreadCount;
     }
+  } else if (path.includes('/admin/crm/contacts')) {
+    body.contacts = body.data?.contacts || (Array.isArray(body.data) ? body.data : []);
   }
 
   return body;
