@@ -6,7 +6,7 @@ import {
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import { useUserAuth } from "../../contexts/UserAuthContext";
-import { loginUser, getApiErrorMessage, unwrapApiData } from "../../api/api";
+import { loginUser, resendVerificationEmail, getApiErrorMessage, unwrapApiData } from "../../api/api";
 import { swalSuccess, swalError } from "../../utils/swal";
 import logo from "../../assets/images/logo.webp";
 import spaImage from "../../assets/images/about-2.webp";
@@ -19,22 +19,54 @@ export default function Login() {
   const { login, isAuthenticated, loading } = useUserAuth();
 
   const from = location.state?.from || "/my-account/profile";
+  const prefilledEmail = location.state?.email || "";
 
   useEffect(() => {
     if (!loading && isAuthenticated) navigate(from, { replace: true });
   }, [isAuthenticated, loading, navigate, from]);
 
-  const [form, setForm] = useState({ email: "", password: "" });
+  useEffect(() => {
+    if (prefilledEmail) {
+      setForm((prev) => ({ ...prev, email: prefilledEmail }));
+    }
+  }, [prefilledEmail]);
+
+  const [form, setForm] = useState({ email: prefilledEmail, password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
+  const [verifyNotice, setVerifyNotice] = useState("");
+  const [resendSuccess, setResendSuccess] = useState("");
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleResendVerification = async () => {
+    if (!form.email.trim()) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    setResending(true);
+    setResendSuccess("");
+    setError("");
+    try {
+      await resendVerificationEmail(form.email.trim());
+      setResendSuccess("Verification email sent. Please check your inbox and spam folder.");
+      setVerifyNotice(`A verification link has been sent to ${form.email.trim()}.`);
+    } catch (err) {
+      const msg = getApiErrorMessage(err, "Failed to resend verification email.");
+      setError(msg);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setVerifyNotice("");
+    setResendSuccess("");
     try {
       const res = await loginUser({ email: form.email, password: form.password });
       if (res.data?.success) {
@@ -44,9 +76,20 @@ export default function Login() {
         navigate(from, { replace: true });
       }
     } catch (err) {
+      const code = err?.response?.data?.code;
+      const detailsEmail = err?.response?.data?.details?.email;
       const msg = getApiErrorMessage(err, "Login failed. Please try again.");
-      setError(msg);
-      swalError("Login Failed", msg);
+
+      if (code === "EMAIL_NOT_VERIFIED") {
+        const displayEmail = detailsEmail || form.email;
+        setVerifyNotice(
+          `Please verify your email before signing in. A verification link has been sent to ${displayEmail}. Check your inbox and spam folder.`
+        );
+        setError("");
+      } else {
+        setError(msg);
+        swalError("Login Failed", msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -62,7 +105,6 @@ export default function Login() {
 
         <AuthPanelAside backgroundImage={spaImage} flex="0 0 48%" />
 
-        {/* ── Right — form panel ─────────────────────────────────── */}
         <Box
           sx={{
             flex: 1,
@@ -75,7 +117,6 @@ export default function Login() {
           }}
         >
           <Box sx={{ width: "100%", maxWidth: 420 }}>
-            {/* Mobile logo */}
             <Box sx={{ display: { xs: "flex", md: "none" }, justifyContent: "center", mb: 3 }}>
               <Box component="img" src={logo} alt="Rehoboth" sx={{ height: 54, width: "auto" }} />
             </Box>
@@ -87,6 +128,16 @@ export default function Login() {
               Sign in to book appointments and manage your account
             </Typography>
 
+            {verifyNotice && (
+              <Alert severity="warning" sx={{ mb: 2.5, borderRadius: 1 }}>
+                {verifyNotice}
+              </Alert>
+            )}
+            {resendSuccess && (
+              <Alert severity="success" sx={{ mb: 2.5, borderRadius: 1 }}>
+                {resendSuccess}
+              </Alert>
+            )}
             {error && <Alert severity="error" sx={{ mb: 2.5, borderRadius: 1 }}>{error}</Alert>}
 
             <Box component="form" onSubmit={handleSubmit}>
@@ -137,6 +188,18 @@ export default function Login() {
                 {submitting ? <CircularProgress size={22} color="inherit" /> : "Sign In"}
               </Button>
             </Box>
+
+            {(verifyNotice || resendSuccess) && (
+              <Button
+                fullWidth variant="outlined" disabled={resending} onClick={handleResendVerification}
+                sx={{
+                  mt: 2, textTransform: "none", fontWeight: 600, borderRadius: 0,
+                  borderColor: "secondary.main", color: "secondary.main",
+                }}
+              >
+                {resending ? <CircularProgress size={20} /> : "Resend Verification Email"}
+              </Button>
+            )}
 
             <Divider sx={{ my: 3 }}>
               <Typography variant="caption" color="text.secondary">New to Rehoboth?</Typography>

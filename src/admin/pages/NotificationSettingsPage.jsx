@@ -99,6 +99,7 @@ const PLACEHOLDER_HINTS = {
   "voucher.issued":         "{{first_name}}, {{title}}, {{code}}, {{clinic_url}}, {{logo_url}}",
   "voucher.expiring":       "{{first_name}}, {{title}}, {{code}}, {{expiry_date}}, {{days_remaining}}, {{clinic_url}}, {{logo_url}}",
   "account.welcome":        "{{first_name}}, {{last_name}}, {{email}}, {{clinic_url}}, {{logo_url}}",
+  "account.email_verification": "{{first_name}}, {{last_name}}, {{email}}, {{verification_link}}, {{clinic_url}}, {{logo_url}}",
   "chat.admin_replied":     "{{first_name}}, {{reply}}, {{channel}}, {{chat_url}}, {{clinic_url}}, {{logo_url}}",
 };
 
