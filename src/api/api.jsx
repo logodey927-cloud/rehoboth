@@ -1,6 +1,7 @@
 // client/src/api/api.jsx
 import axios from "axios";
 import { getApiBaseUrl } from "../config/env.js";
+import { applyLegacyAdminResponse } from "./legacyAdminResponse.js";
 
 const api = axios.create({
   baseURL: getApiBaseUrl(),
@@ -56,7 +57,7 @@ export function getApiErrorMessage(error, fallback = "Something went wrong. Plea
 }
 
 // ── Admin session helpers ─────────────────────────────────────────────────────
-const ADMIN_URL_PATTERNS = ["/admin/", "/site-settings"];
+const ADMIN_URL_PATTERNS = ["/admin/", "/site-settings", "/newsletter/subscribers"];
 
 /** Remove all admin auth keys (use on logout and 401). */
 export function clearAdminSessionStorage() {
@@ -90,7 +91,12 @@ function _onRefreshed(newToken) {
 api.interceptors.request.use((config) => config, (error) => Promise.reject(error));
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response?.data?.success) {
+      response.data = applyLegacyAdminResponse(response.data, response.config?.url || "");
+    }
+    return response;
+  },
   async (error) => {
     // Detect network failure while offline — no response object means no server reached
     if (!error.response && !navigator.onLine) {
@@ -183,8 +189,8 @@ export const prepareAppointment = (data) => {
   const config = userToken ? { headers: { Authorization: `Bearer ${userToken}` } } : {};
   return api.post("/appointments/prepare", data, config);
 };
-export const getAppointments = () => api.get("/appointments");
-export const getAppointmentById = (id) => api.get(`/appointments/${id}`);
+export const getAppointments = () => api.get("/admin/appointments", { params: { limit: 100 } });
+export const getAppointmentById = (id) => api.get(`/admin/appointments/${id}`);
 export const getAvailableDates = (year, month, serviceId = null, teamMemberId = null) =>
   api.get("/appointments/available-dates", {
     params: {
@@ -236,10 +242,10 @@ export const assignServiceTeamMembers = (serviceId, teamMemberIds) =>
   api.put(`/admin/services/${serviceId}/team-members`, { team_member_ids: teamMemberIds });
 
 export const submitContactForm = (data) => api.post("/contact", data);
-export const getContactMessages = () => api.get("/contact");
+export const getContactMessages = () => api.get("/admin/contact-messages", { params: { limit: 100 } });
 
-export const subscribeNewsletter = (email) => api.post("/newsletter", { email });
-export const getSubscribers = () => api.get("/newsletter");
+export const subscribeNewsletter = (email) => api.post("/newsletter/subscribe", { email });
+export const getSubscribers = () => api.get("/newsletter/subscribers", { params: { limit: 100 } });
 
 // Auth API
 export const loginAdmin = (email, password) =>

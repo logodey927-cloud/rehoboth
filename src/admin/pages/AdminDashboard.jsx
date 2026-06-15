@@ -165,7 +165,7 @@ export default function AdminDashboard() {
       getSubscribers(),
       getAllVouchersAdmin(),
       getRecentVoucherIssuesAdmin(5),
-      adminGetReviews({ status: "pending" }),
+      adminGetReviews({ status: "PENDING" }),
       getAdminNotifications({ limit: 10 }),
     ]);
 
@@ -208,7 +208,7 @@ export default function AdminDashboard() {
       payload.pendingReviewsCount = reviewsRes.value.data.reviews?.length ?? 0;
     }
 
-    if (notifRes.status === "fulfilled") {
+    if (notifRes.status === "fulfilled" && notifRes.value.data?.success) {
       payload.unreadNotifCount = notifRes.value.data?.unreadCount ?? 0;
     }
 

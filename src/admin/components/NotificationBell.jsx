@@ -151,8 +151,8 @@ export default function NotificationBell() {
     try {
       const res = await getAdminNotifications({ limit: 30 });
       if (res.data?.success) {
-        setNotifications(res.data.notifications);
-        setUnreadCount(res.data.unreadCount);
+        setNotifications(res.data.notifications || []);
+        setUnreadCount(res.data.unreadCount ?? 0);
       }
     } catch { /* silent */ }
   }, []);
