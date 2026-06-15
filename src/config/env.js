@@ -22,9 +22,20 @@ function resolveHostInUrl(url) {
   return url.replace("localhost", hostname).replace("127.0.0.1", hostname);
 }
 
+function assertHttpApiUrl(url, source = "VITE_API_URL") {
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error(
+      `${source} must start with http:// or https:// (got "${url.slice(0, 40)}…"). ` +
+        "Use your Railway public API URL, e.g. https://rehoboth-api-production.up.railway.app/api — not DATABASE_URL or REDIS_URL."
+    );
+  }
+}
+
 /** API base URL, e.g. https://api.example.com/api */
 export function getApiBaseUrl() {
-  return resolveHostInUrl(requireViteEnv("VITE_API_URL"));
+  const url = resolveHostInUrl(requireViteEnv("VITE_API_URL"));
+  assertHttpApiUrl(url);
+  return url;
 }
 
 /** Socket / HTTP origin without the /api suffix */

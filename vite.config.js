@@ -6,6 +6,16 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function assertHttpApiUrl(apiUrl) {
+  if (!apiUrl) return;
+  if (!/^https?:\/\//i.test(apiUrl)) {
+    throw new Error(
+      `VITE_API_URL must start with http:// or https:// (got "${String(apiUrl).slice(0, 48)}…"). ` +
+        "Set it to your Railway public API URL, e.g. https://rehoboth-api-production.up.railway.app/api"
+    );
+  }
+}
+
 /** Stamp a unique SW version and inject API origin on each production build. */
 function pwaSwVersionPlugin(apiUrl) {
   return {
@@ -34,6 +44,7 @@ function pwaSwVersionPlugin(apiUrl) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
   const apiUrl = env.VITE_API_URL || process.env.VITE_API_URL;
+  assertHttpApiUrl(apiUrl);
 
   return {
   plugins: [react(), pwaSwVersionPlugin(apiUrl)],
