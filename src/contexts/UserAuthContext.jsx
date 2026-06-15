@@ -8,7 +8,7 @@
  *   user_data           — serialised user object
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { refreshUserToken } from "../api/api";
+import { refreshUserToken, unwrapApiData } from "../api/api";
 
 /** Returns the JWT exp timestamp in ms, or 0 if unreadable. */
 function getJwtExpiry(token) {
@@ -47,7 +47,7 @@ export function UserAuthProvider({ children }) {
           refreshUserToken(savedRefresh)
             .then((res) => {
               if (res.data?.success) {
-                const { accessToken: newAccess, refreshToken: newRefresh } = res.data;
+                const { accessToken: newAccess, refreshToken: newRefresh } = unwrapApiData(res);
                 localStorage.setItem("user_access_token", newAccess);
                 if (newRefresh) localStorage.setItem("user_refresh_token", newRefresh);
                 setAccessToken(newAccess);

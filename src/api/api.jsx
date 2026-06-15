@@ -10,6 +10,17 @@ const api = axios.create({
   },
 });
 
+/** Unwrap `{ success, data }` from axios responses. */
+export function unwrapApiData(response) {
+  return response?.data?.data ?? response?.data;
+}
+
+/** User-facing message from API error responses. */
+export function getApiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
+  const body = error?.response?.data;
+  return body?.message || body?.error || error?.message || fallback;
+}
+
 // ── Admin session helpers ─────────────────────────────────────────────────────
 const ADMIN_URL_PATTERNS = ["/admin/", "/site-settings"];
 
@@ -97,7 +108,7 @@ api.interceptors.response.use(
         const res = await api.post(REFRESH_URL, { refreshToken: rt });
         if (!res.data?.success) throw new Error("refresh failed");
 
-        const { accessToken: newAccess, refreshToken: newRefresh } = res.data;
+        const { accessToken: newAccess, refreshToken: newRefresh } = unwrapApiData(res);
         localStorage.setItem("user_access_token", newAccess);
         if (newRefresh) localStorage.setItem("user_refresh_token", newRefresh);
 

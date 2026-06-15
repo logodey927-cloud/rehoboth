@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { CheckCircle, Error, MarkEmailRead } from "@mui/icons-material";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
-import { verifyUserEmail, resendVerificationEmail } from "../../api/api";
+import { verifyUserEmail, resendVerificationEmail, getApiErrorMessage, unwrapApiData } from "../../api/api";
 import logo from "../../assets/images/logo.webp";
 import SEO from "../../components/common09/SEO";
 
@@ -31,7 +31,7 @@ export default function VerifyEmail() {
       .then((res) => {
         if (res.data?.success) {
           setStatus("success");
-          setMessage(res.data.message);
+          setMessage(unwrapApiData(res)?.message || "Email verified successfully.");
         } else {
           setStatus("error");
           setMessage("Verification failed.");
@@ -39,7 +39,7 @@ export default function VerifyEmail() {
       })
       .catch((err) => {
         setStatus("error");
-        setMessage(err.response?.data?.error || "Verification failed. The link may have expired.");
+        setMessage(getApiErrorMessage(err, "Verification failed. The link may have expired."));
       });
   }, [token]);
 
@@ -61,7 +61,7 @@ export default function VerifyEmail() {
       await resendVerificationEmail(resendEmail.trim());
       setResent(true);
     } catch (err) {
-      setResendError(err.response?.data?.error || "Failed to resend. Please try again.");
+      setResendError(getApiErrorMessage(err, "Failed to resend. Please try again."));
     } finally {
       setResending(false);
     }

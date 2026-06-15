@@ -6,7 +6,7 @@ import {
 import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import { useUserAuth } from "../../contexts/UserAuthContext";
-import { loginUser } from "../../api/api";
+import { loginUser, getApiErrorMessage, unwrapApiData } from "../../api/api";
 import { swalSuccess, swalError } from "../../utils/swal";
 import logo from "../../assets/images/logo.webp";
 import spaImage from "../../assets/images/about-2.webp";
@@ -38,12 +38,13 @@ export default function Login() {
     try {
       const res = await loginUser({ email: form.email, password: form.password });
       if (res.data?.success) {
-        login(res.data.accessToken, res.data.refreshToken, res.data.user);
-        await swalSuccess("Welcome back!", `Hi ${res.data.user.first_name || res.data.user.email}!`);
+        const { accessToken, refreshToken, user } = unwrapApiData(res);
+        login(accessToken, refreshToken, user);
+        await swalSuccess("Welcome back!", `Hi ${user?.first_name || user?.email}!`);
         navigate(from, { replace: true });
       }
     } catch (err) {
-      const msg = err.response?.data?.error || "Login failed. Please try again.";
+      const msg = getApiErrorMessage(err, "Login failed. Please try again.");
       setError(msg);
       swalError("Login Failed", msg);
     } finally {

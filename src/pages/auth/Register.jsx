@@ -6,7 +6,7 @@ import {
 import { Visibility, VisibilityOff, Email, Lock, Person, Phone } from "@mui/icons-material";
 import { Link as RouterLink, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useUserAuth } from "../../contexts/UserAuthContext";
-import { registerUser } from "../../api/api";
+import { registerUser, getApiErrorMessage, unwrapApiData } from "../../api/api";
 import { swalSuccess, swalError } from "../../utils/swal";
 import logo from "../../assets/images/logo.webp";
 import registerBg from "../../assets/images/bg-r.png";
@@ -25,7 +25,7 @@ export default function Register() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref") || "";
-  const { login, isAuthenticated, loading } = useUserAuth();
+  const { isAuthenticated, loading } = useUserAuth();
   const redirectTo = location.state?.from || "/my-account/profile";
 
   useEffect(() => {
@@ -64,15 +64,15 @@ export default function Register() {
         ...(referralCode ? { referral_code: referralCode.toUpperCase() } : {}),
       });
       if (res.data?.success) {
-        login(res.data.accessToken, res.data.refreshToken, res.data.user);
+        const payload = unwrapApiData(res);
         await swalSuccess(
           "Account Created!",
-          "Welcome to Rehoboth! Please check your email to verify your address."
+          payload?.message || "Please check your email to verify your address, then sign in."
         );
-        navigate(redirectTo, { replace: true });
+        navigate("/login", { replace: true, state: { email: form.email } });
       }
     } catch (err) {
-      const msg = err.response?.data?.error || "Registration failed. Please try again.";
+      const msg = getApiErrorMessage(err, "Registration failed. Please try again.");
       setError(msg);
       swalError("Registration Failed", msg);
     } finally {
