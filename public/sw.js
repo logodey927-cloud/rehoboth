@@ -118,7 +118,15 @@ self.addEventListener("fetch", (event) => {
 
   // NetworkOnly: auth, payments, chat, socket.io
   if (isNetworkOnly(request)) {
-    event.respondWith(fetch(request));
+    event.respondWith(
+      fetch(request).catch(
+        () =>
+          new Response(JSON.stringify({ success: false, message: "Network error" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          })
+      )
+    );
     return;
   }
 
@@ -165,7 +173,9 @@ self.addEventListener("fetch", (event) => {
 
   // Default: network with cache fallback
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request)
+      .catch(() => caches.match(request))
+      .then((response) => response || new Response("", { status: 504, statusText: "Gateway Timeout" }))
   );
 });
 

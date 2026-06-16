@@ -248,6 +248,7 @@ export default function CalendarPage() {
           <Calendar
             showInfoBox={true}
             adminMode={true}
+            adminAppointments={appointments}
             onMonthChange={(year, month, booked, blocked) => {
               setViewMonth(dayjs().year(year).month(month - 1));
               handleMonthChange(year, month, booked, blocked);

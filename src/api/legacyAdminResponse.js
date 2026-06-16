@@ -49,6 +49,17 @@ export function applyLegacyAdminResponse(body, url = '') {
     !path.includes('/available-')
   ) {
     body.appointment = body.data;
+  } else if (path.includes('/available-dates')) {
+    const dates = Array.isArray(body.data) ? body.data : [];
+    const availableDates = {};
+    for (const d of dates) {
+      if (typeof d === 'string') {
+        availableDates[d] = { available: true, timeSlots: [], reason: null };
+      }
+    }
+    body.availableDates = availableDates;
+  } else if (path.includes('/admin/blocked-time-slots')) {
+    body.blockedTimeSlots = Array.isArray(body.data) ? body.data : [];
   }
 
   return body;

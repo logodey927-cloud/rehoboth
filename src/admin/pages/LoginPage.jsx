@@ -136,7 +136,7 @@ export default function LoginPage() {
 
           {sessionExpired && !error && (
             <Alert severity="warning" sx={{ mb: 2.5, borderRadius: 1 }}>
-              Your session expired after 24 hours. Please sign in again.
+              Your session has expired. Please sign in again.
             </Alert>
           )}
           {error && (

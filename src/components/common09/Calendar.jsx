@@ -27,7 +27,6 @@ import {
   Cancel,
 } from "@mui/icons-material";
 import {
-  getAvailableDates,
   unblockCalendarDate,
   createBlockedTimeSlot,
   getBlockedTimeSlots,
@@ -46,12 +45,40 @@ function normalizeDateKey(date) {
   return null;
 }
 
+function buildBookedDatesFromAppointments(appointments) {
+  const bookedDatesData = {};
+  (appointments || []).forEach((apt) => {
+    const dateKey = normalizeDateKey(apt.date);
+    if (!dateKey) return;
+    if (!bookedDatesData[dateKey]) {
+      bookedDatesData[dateKey] = [];
+    }
+    bookedDatesData[dateKey].push(apt);
+  });
+  return bookedDatesData;
+}
+
+async function fetchBlockedDatesForMonth(year, month) {
+  const monthStart = dayjs().year(year).month(month - 1).startOf("month").format("YYYY-MM-DD");
+  const monthEnd = dayjs().year(year).month(month - 1).endOf("month").format("YYYY-MM-DD");
+  const response = await getBlockedTimeSlots({ date_from: monthStart, date_to: monthEnd });
+  const slots = response.data?.blockedTimeSlots || [];
+  const blockedDatesData = {};
+  for (const slot of slots) {
+    if (slot.is_full_day && slot.date) {
+      blockedDatesData[slot.date] = { reason: slot.reason || null };
+    }
+  }
+  return blockedDatesData;
+}
+
 export default function Calendar({
   showInfoBox = true,
   compact = false,
   adminMode = false,
   customerMode = false,
   teamMemberAppointments = null,
+  adminAppointments = null,
   onDayClick,
   onMonthChange = null,
 }) {
@@ -82,16 +109,7 @@ export default function Calendar({
     if (teamMemberAppointments && Array.isArray(teamMemberAppointments)) {
       setLoading(true);
       try {
-        const bookedDatesData = {};
-        
-        teamMemberAppointments.forEach((apt) => {
-          const dateKey = normalizeDateKey(apt.date);
-          if (!dateKey) return;
-          if (!bookedDatesData[dateKey]) {
-            bookedDatesData[dateKey] = [];
-          }
-          bookedDatesData[dateKey].push(apt);
-        });
+        const bookedDatesData = buildBookedDatesFromAppointments(teamMemberAppointments);
 
         setBookedDates(bookedDatesData);
         setBlockedDates({}); // Team members don't see blocked dates
@@ -106,36 +124,39 @@ export default function Calendar({
       return;
     }
 
-    // Otherwise, fetch all appointments (admin mode)
-    const fetchBookedDates = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const year = currentDate.year();
-        const month = currentDate.month() + 1; // dayjs months are 0-indexed
-        const response = await getAvailableDates(year, month);
-        
-        if (response.data?.success) {
-          const bookedDatesData = response.data.bookedDates || {};
-          const blockedDatesData = response.data.blockedDates || {};
+    // Admin calendar: derive bookings from appointments list + blocked-time-slots API
+    if (adminMode) {
+      const loadAdminCalendar = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const year = currentDate.year();
+          const month = currentDate.month() + 1;
+          const bookedDatesData = buildBookedDatesFromAppointments(adminAppointments || []);
+          const blockedDatesData = await fetchBlockedDatesForMonth(year, month);
+
           setBookedDates(bookedDatesData);
           setBlockedDates(blockedDatesData);
           onMonthChange?.(year, month, bookedDatesData, blockedDatesData);
-        } else {
-          setError("Failed to load calendar data");
+        } catch (err) {
+          setError("Failed to load calendar data. Please try again.");
+          setBookedDates({});
+          setBlockedDates({});
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        setError("Failed to load calendar data. Please try again.");
-        // Set empty booked dates on error so calendar still renders
-        setBookedDates({});
-        setBlockedDates({});
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchBookedDates();
-  }, [currentDate, teamMemberAppointments]);
+      loadAdminCalendar();
+      return;
+    }
+
+    // Public calendar without a service context — availability requires service_id on the API
+    setBookedDates({});
+    setBlockedDates({});
+    setError(null);
+    setLoading(false);
+  }, [currentDate, teamMemberAppointments, adminMode, adminAppointments, onMonthChange]);
 
   // Get the first day of the month and number of days
   const startOfMonth = currentDate.startOf("month");
@@ -396,14 +417,12 @@ export default function Calendar({
         );
       }
       
-      // Refresh calendar data
+      // Refresh blocked dates for the current month
       const year = currentDate.year();
       const month = currentDate.month() + 1;
-      const response = await getAvailableDates(year, month);
-      if (response.data?.success) {
-        const blockedDatesData = response.data.blockedDates || {};
-        setBlockedDates(blockedDatesData);
-      }
+      const blockedDatesData = await fetchBlockedDatesForMonth(year, month);
+      setBlockedDates(blockedDatesData);
+      onMonthChange?.(year, month, bookedDates, blockedDatesData);
     } catch (err) {
       const errorMessage = err.response?.data?.error ||
         err.message ||
