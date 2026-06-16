@@ -17,10 +17,55 @@ export function unwrapApiData(response) {
 }
 
 /** Catalog services list from GET /services (legacy `services` or `data`). */
+export function normalizeCatalogService(row) {
+  if (!row || typeof row !== 'object') return null;
+
+  const title = row.title || row.name;
+  if (!title) return null;
+
+  if (Array.isArray(row.items) && row.items.length > 0) {
+    return {
+      ...row,
+      title,
+      benefits: row.benefits || [],
+      items: row.items.map((item) => ({
+        ...item,
+        name: item.name || title,
+        durations: (item.durations || []).map((d) => ({
+          ...d,
+          minutes: Number(d.minutes),
+          price: Number(d.price),
+        })),
+      })),
+    };
+  }
+
+  // Legacy flat booking service row (name + duration_min + price)
+  const minutes = Number(row.duration_min) || 60;
+  const rawPrice = Number(row.price);
+  const price =
+    Number.isFinite(rawPrice) && rawPrice > 500 ? rawPrice / 10000 : rawPrice || 70;
+
+  return {
+    ...row,
+    title,
+    benefits: row.benefits || [],
+    items: [
+      {
+        id: `${row.id}-default-item`,
+        name: title,
+        display_order: 0,
+        durations: [{ minutes, price, display_order: 0 }],
+      },
+    ],
+  };
+}
+
 export function unwrapServicesList(response) {
   const body = response?.data;
   if (!body?.success) return [];
-  return body.services ?? (Array.isArray(body.data) ? body.data : []);
+  const raw = body.services ?? (Array.isArray(body.data) ? body.data : []);
+  return raw.map(normalizeCatalogService).filter(Boolean);
 }
 
 /** Flatten API validation `details` into `{ field: message }`. */

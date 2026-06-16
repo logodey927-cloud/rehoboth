@@ -15,7 +15,7 @@ function Services() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [priceRange, setPriceRange] = useState([50, 200]);
+  const [priceRange, setPriceRange] = useState([25, 250]);
 
   useEffect(() => {
     fetchServices();
@@ -38,11 +38,12 @@ function Services() {
     }
   };
 
-  const categories = [...new Set(services.map((t) => t.title))];
+  const categories = [...new Set(services.map((t) => t.title).filter(Boolean))];
 
   const filteredTreatments = services.filter((t) => {
+    const title = t.title || t.name || '';
     const q = searchQuery.trim().toLowerCase();
-    const inTitle = t.title.toLowerCase().includes(q);
+    const inTitle = title.toLowerCase().includes(q);
     const inBenefits = (t.benefits || []).some((b) => {
       if (typeof b === "string") return b.toLowerCase().includes(q);
       if (b && typeof b === "object") {
@@ -57,29 +58,32 @@ function Services() {
     const matchQuery = q === "" || inTitle || inBenefits || inItems;
 
     const matchCategory = selectedCategory
-      ? t.title === selectedCategory
+      ? title === selectedCategory
       : true;
 
+    const allPrices = (t.items || []).flatMap((it) =>
+      (it.durations || []).map((d) => Number(d.price)).filter((p) => Number.isFinite(p))
+    );
+    const hasPricing = allPrices.length > 0;
     const anyItemInRange = (t.items || []).some((it) =>
       (it.durations || []).some(
-        (d) => d.price >= priceRange[0] && d.price <= priceRange[1]
+        (d) => {
+          const price = Number(d.price);
+          return Number.isFinite(price) && price >= priceRange[0] && price <= priceRange[1];
+        }
       )
     );
-    
-    // Calculate price range from items
-    const allPrices = (t.items || []).flatMap((it) =>
-      (it.durations || []).map((d) => d.price)
-    );
-    const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
-    const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 0;
+    const minPrice = hasPricing ? Math.min(...allPrices) : 0;
+    const maxPrice = hasPricing ? Math.max(...allPrices) : 0;
     const matchPrice =
+      !hasPricing ||
       anyItemInRange ||
-      (minPrice >= priceRange[0] && maxPrice <= priceRange[1]);
+      (minPrice <= priceRange[1] && maxPrice >= priceRange[0]);
 
     return matchQuery && matchCategory && matchPrice;
   });
 
-  const selectedTreatment = filteredTreatments[0] || services[0];
+  const selectedTreatment = filteredTreatments[0] || services.find((t) => t.title || t.name) || null;
 
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
@@ -110,6 +114,12 @@ function Services() {
         <Container maxWidth="xl" sx={{ py: 8 }}>
           <Alert severity="error" sx={{ borderRadius: 0 }}>
             {error}
+          </Alert>
+        </Container>
+      ) : services.length === 0 ? (
+        <Container maxWidth="xl" sx={{ py: 8 }}>
+          <Alert severity="info" sx={{ borderRadius: 0 }}>
+            No services are available right now. Please check back soon.
           </Alert>
         </Container>
       ) : (

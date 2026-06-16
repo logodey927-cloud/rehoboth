@@ -3,7 +3,7 @@
  * Fetches service pricing from API and calculates prices
  */
 
-import { getServices } from "../api/api";
+import { getServices, unwrapServicesList } from "../api/api";
 
 /**
  * Get service price from API
@@ -19,11 +19,11 @@ export async function getServicePrice(serviceName, duration = null) {
 
     // Fetch services from API
     const response = await getServices();
-    if (!response.data?.success || !response.data.services) {
+    if (!response.data?.success) {
       return { price: 70, duration: 60 };
     }
 
-    const services = response.data.services;
+    const services = unwrapServicesList(response);
 
     // Find matching service by title or item name
     let matchedService = null;
