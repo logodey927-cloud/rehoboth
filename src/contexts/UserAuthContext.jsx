@@ -3,12 +3,12 @@
  * Mirrors the existing TeamMemberAuthContext / AdminAuthContext patterns.
  *
  * Stored in localStorage:
- *   user_access_token   — short-lived JWT (1 h)
- *   user_refresh_token  — long-lived rotation token (30 days)
+ *   user_access_token   — short-lived JWT (15 min default)
+ *   user_refresh_token  — long-lived rotation token (7 days)
  *   user_data           — serialised user object
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { refreshUserToken, unwrapApiData } from "../api/api";
+import { refreshUserToken, unwrapApiData, clearUserSessionStorage } from "../api/api";
 
 /** Returns the JWT exp timestamp in ms, or 0 if unreadable. */
 function getJwtExpiry(token) {
@@ -19,6 +19,28 @@ function getJwtExpiry(token) {
   }
 }
 
+function isValidJwt(token) {
+  return typeof token === "string" && token.split(".").length === 3 && token.length > 20;
+}
+
+function userFromJwt(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.userId) return null;
+    return { id: payload.userId, role: payload.role || "CLIENT" };
+  } catch {
+    return null;
+  }
+}
+
+function parseStoredUser(savedData, savedToken) {
+  if (savedData) {
+    const parsed = JSON.parse(savedData);
+    if (parsed && (parsed.id || parsed.email)) return parsed;
+  }
+  return userFromJwt(savedToken);
+}
+
 const UserAuthContext = createContext(null);
 
 export function UserAuthProvider({ children }) {
@@ -27,118 +49,127 @@ export function UserAuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const startupRefreshDone = useRef(false);
 
+  const resetSession = useCallback(() => {
+    clearUserSessionStorage();
+    setUser(null);
+    setAccessToken(null);
+  }, []);
+
   // ── Restore session on mount; refresh proactively if token expires soon ────
   useEffect(() => {
     const savedToken   = localStorage.getItem("user_access_token");
     const savedRefresh = localStorage.getItem("user_refresh_token");
     const savedData    = localStorage.getItem("user_data");
 
-    if (savedToken && savedData) {
-      try {
-        setAccessToken(savedToken);
-        setUser(JSON.parse(savedData));
+    if (!savedToken || !isValidJwt(savedToken)) {
+      if (savedToken || savedData || savedRefresh) resetSession();
+      setLoading(false);
+      return;
+    }
 
-        // If the access token expires within 5 minutes (or is already expired),
-        // refresh now so the first API calls don't hit a 401.
-        const expiresAt = getJwtExpiry(savedToken);
-        const soonMs    = Date.now() + 5 * 60 * 1000;
-        if (savedRefresh && expiresAt < soonMs && !startupRefreshDone.current) {
-          startupRefreshDone.current = true;
-          refreshUserToken(savedRefresh)
-            .then((res) => {
-              if (res.data?.success) {
-                const { accessToken: newAccess, refreshToken: newRefresh } = unwrapApiData(res);
-                localStorage.setItem("user_access_token", newAccess);
-                if (newRefresh) localStorage.setItem("user_refresh_token", newRefresh);
-                setAccessToken(newAccess);
-              } else {
-                // Refresh rejected — clear stale session
-                localStorage.removeItem("user_access_token");
-                localStorage.removeItem("user_refresh_token");
-                localStorage.removeItem("user_data");
-                setUser(null);
-                setAccessToken(null);
-              }
-            })
-            .catch(() => {
-              localStorage.removeItem("user_access_token");
-              localStorage.removeItem("user_refresh_token");
-              localStorage.removeItem("user_data");
-              setUser(null);
-              setAccessToken(null);
-            })
-            .finally(() => setLoading(false));
-          return; // setLoading(false) is called inside finally above
-        }
-      } catch {
-        localStorage.removeItem("user_access_token");
-        localStorage.removeItem("user_refresh_token");
-        localStorage.removeItem("user_data");
+    try {
+      const restoredUser = parseStoredUser(savedData, savedToken);
+      if (!restoredUser) {
+        resetSession();
+        setLoading(false);
+        return;
       }
+
+      setAccessToken(savedToken);
+      setUser(restoredUser);
+
+      const expiresAt = getJwtExpiry(savedToken);
+      const soonMs    = Date.now() + 5 * 60 * 1000;
+      if (savedRefresh && isValidJwt(savedRefresh) && expiresAt < soonMs && !startupRefreshDone.current) {
+        startupRefreshDone.current = true;
+        refreshUserToken(savedRefresh)
+          .then((res) => {
+            if (res.data?.success) {
+              const { accessToken: newAccess, refreshToken: newRefresh } = unwrapApiData(res);
+              if (!isValidJwt(newAccess)) throw new Error("invalid access token");
+              localStorage.setItem("user_access_token", newAccess);
+              if (newRefresh && isValidJwt(newRefresh)) {
+                localStorage.setItem("user_refresh_token", newRefresh);
+              }
+              setAccessToken(newAccess);
+            } else {
+              resetSession();
+            }
+          })
+          .catch(() => {
+            // Only clear if the access token is actually expired
+            if (getJwtExpiry(savedToken) < Date.now()) {
+              resetSession();
+            }
+          })
+          .finally(() => setLoading(false));
+        return;
+      }
+    } catch {
+      resetSession();
     }
     setLoading(false);
-  }, []);
+  }, [resetSession]);
 
-  // ── Keep context token in sync when the 401 interceptor silently refreshes ─
+  // ── Sync with axios interceptor token refresh / session expiry ─────────────
   useEffect(() => {
-    const handler = (e) => {
+    const onTokenRefreshed = (e) => {
       const newAccess = e.detail?.accessToken;
-      if (newAccess) setAccessToken(newAccess);
+      if (newAccess && isValidJwt(newAccess)) setAccessToken(newAccess);
     };
-    window.addEventListener("user:token-refreshed", handler);
-    return () => window.removeEventListener("user:token-refreshed", handler);
-  }, []);
+    const onSessionExpired = () => resetSession();
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  const clearStorage = () => {
-    localStorage.removeItem("user_access_token");
-    localStorage.removeItem("user_refresh_token");
-    localStorage.removeItem("user_data");
-  };
+    window.addEventListener("user:token-refreshed", onTokenRefreshed);
+    window.addEventListener("user:session-expired", onSessionExpired);
+    return () => {
+      window.removeEventListener("user:token-refreshed", onTokenRefreshed);
+      window.removeEventListener("user:session-expired", onSessionExpired);
+    };
+  }, [resetSession]);
 
-  const persist = (newAccessToken, newRefreshToken, userData) => {
+  const persist = useCallback((newAccessToken, newRefreshToken, userData) => {
+    if (!isValidJwt(newAccessToken) || !userData) return false;
     localStorage.setItem("user_access_token", newAccessToken);
-    if (newRefreshToken) localStorage.setItem("user_refresh_token", newRefreshToken);
+    if (newRefreshToken && isValidJwt(newRefreshToken)) {
+      localStorage.setItem("user_refresh_token", newRefreshToken);
+    }
     localStorage.setItem("user_data", JSON.stringify(userData));
     setAccessToken(newAccessToken);
     setUser(userData);
-  };
-
-  // ── Login (called after successful /api/auth/user/login) ───────────────────
-  const login = useCallback((newAccessToken, newRefreshToken, userData) => {
-    persist(newAccessToken, newRefreshToken, userData);
+    return true;
   }, []);
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
+  const login = useCallback((newAccessToken, newRefreshToken, userData) => {
+    persist(newAccessToken, newRefreshToken, userData);
+  }, [persist]);
+
   const logout = useCallback(() => {
     const refreshToken = localStorage.getItem("user_refresh_token");
-    // Fire-and-forget revocation (don't await — user should not be blocked)
     if (refreshToken) {
       import("../api/api").then(({ logoutUser }) => logoutUser(refreshToken).catch(() => {}));
     }
     import("../utils/chatSocket").then(({ disconnectChatSocket }) => disconnectChatSocket());
-    clearStorage();
-    setUser(null);
-    setAccessToken(null);
-  }, []);
+    resetSession();
+  }, [resetSession]);
 
-  // ── Update local user data (after profile edit) ─────────────────────────────
   const updateUser = useCallback((updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem("user_data", JSON.stringify(updatedUser));
   }, []);
 
-  // ── Silent token refresh ─────────────────────────────────────────────────────
   const refreshAccessToken = useCallback(async () => {
     try {
       const refreshToken = localStorage.getItem("user_refresh_token");
-      if (!refreshToken) return null;
+      if (!refreshToken || !isValidJwt(refreshToken)) return null;
 
       const res = await refreshUserToken(refreshToken);
       if (res.data?.success) {
-        const { accessToken: newAccess, refreshToken: newRefresh } = res.data;
+        const { accessToken: newAccess, refreshToken: newRefresh } = unwrapApiData(res);
+        if (!isValidJwt(newAccess)) throw new Error("invalid access token");
         localStorage.setItem("user_access_token", newAccess);
-        if (newRefresh) localStorage.setItem("user_refresh_token", newRefresh);
+        if (newRefresh && isValidJwt(newRefresh)) {
+          localStorage.setItem("user_refresh_token", newRefresh);
+        }
         setAccessToken(newAccess);
         return newAccess;
       }
@@ -148,7 +179,7 @@ export function UserAuthProvider({ children }) {
     return null;
   }, [logout]);
 
-  const isAuthenticated = !!user && !!accessToken;
+  const isAuthenticated = !!user && !!accessToken && isValidJwt(accessToken);
 
   return (
     <UserAuthContext.Provider

@@ -79,12 +79,24 @@ export default function UsersPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await adminGetUsers({ limit: 1000 });
-      if (res.data?.success) {
-        setUsers(res.data.users || []);
-      } else {
-        setError(res.data?.error || "Failed to load users");
-      }
+      const limit = 100;
+      let page = 1;
+      let allUsers = [];
+      let total = 0;
+
+      do {
+        const res = await adminGetUsers({ limit, page });
+        if (!res.data?.success) {
+          setError(res.data?.error || "Failed to load users");
+          return;
+        }
+        const batch = res.data.users || [];
+        allUsers = allUsers.concat(batch);
+        total = res.data.total ?? allUsers.length;
+        page += 1;
+      } while (allUsers.length < total);
+
+      setUsers(allUsers);
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Failed to load users. Please try again.");
     } finally {
@@ -95,7 +107,9 @@ export default function UsersPage() {
   // Fetch recipient count when broadcast dialog opens or active_only toggles
   useEffect(() => {
     if (!broadcastOpen) return;
-    adminGetUsers({ limit: 1000, status: broadcastActiveOnly ? "active" : "" })
+    const params = { limit: 1 };
+    if (broadcastActiveOnly) params.status = "active";
+    adminGetUsers(params)
       .then((res) => {
         if (res.data?.success)
           setBroadcastRecipientCount(res.data.total ?? res.data.users?.length ?? 0);

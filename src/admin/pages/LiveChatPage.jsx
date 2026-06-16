@@ -323,7 +323,7 @@ export default function LiveChatPage() {
   const openStartDialog = () => {
     setStartOpen(true);
     setStartLoading(true);
-    adminGetUsers({ limit: 200, status: "active" })
+    adminGetUsers({ limit: 100, status: "active" })
       .then((res) => setStartUsers(res.data?.users || []))
       .catch(() => setStartUsers([]))
       .finally(() => setStartLoading(false));

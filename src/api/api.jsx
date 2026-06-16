@@ -75,15 +75,36 @@ let _adminSessionRedirecting = false;
 
 // ── User token refresh on 401 ─────────────────────────────────────────────────
 // Routes that carry a user Bearer token and should auto-refresh on expiry.
-const USER_AUTH_URLS = ["/users/", "/upload/user-avatar"];
+const USER_AUTH_URLS = ["/users/", "/upload/user-avatar", "/appointments/"];
 const REFRESH_URL    = "/auth/user/refresh-token";
 
 let _isRefreshing = false;
-let _refreshQueue = []; // callbacks waiting for the new token
+/** @type {{ resolve: (token: string) => void, reject: (err: unknown) => void }[]} */
+let _refreshQueue = [];
 
 function _onRefreshed(newToken) {
-  _refreshQueue.forEach((cb) => cb(newToken));
+  _refreshQueue.forEach(({ resolve }) => resolve(newToken));
   _refreshQueue = [];
+}
+
+function _onRefreshFailed(err) {
+  _refreshQueue.forEach(({ reject }) => reject(err));
+  _refreshQueue = [];
+}
+
+/** Remove customer auth keys from localStorage. */
+export function clearUserSessionStorage() {
+  localStorage.removeItem("user_access_token");
+  localStorage.removeItem("user_refresh_token");
+  localStorage.removeItem("user_data");
+}
+
+/** Clear storage and notify UserAuthContext to reset in-memory session. */
+export function notifyUserSessionExpired() {
+  clearUserSessionStorage();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("user:session-expired"));
+  }
 }
 
 // ── Offline request interceptor ───────────────────────────────────────────────
@@ -130,10 +151,13 @@ api.interceptors.response.use(
     if (is401 && isUser && !isRefresh && !original._retry) {
       if (_isRefreshing) {
         // Queue this request until the in-flight refresh finishes.
-        return new Promise((resolve) => {
-          _refreshQueue.push((token) => {
-            original.headers["Authorization"] = `Bearer ${token}`;
-            resolve(api(original));
+        return new Promise((resolve, reject) => {
+          _refreshQueue.push({
+            resolve: (token) => {
+              original.headers["Authorization"] = `Bearer ${token}`;
+              resolve(api(original));
+            },
+            reject,
           });
         });
       }
@@ -149,6 +173,8 @@ api.interceptors.response.use(
         if (!res.data?.success) throw new Error("refresh failed");
 
         const { accessToken: newAccess, refreshToken: newRefresh } = unwrapApiData(res);
+        if (!newAccess) throw new Error("refresh response missing access token");
+
         localStorage.setItem("user_access_token", newAccess);
         if (newRefresh) localStorage.setItem("user_refresh_token", newRefresh);
 
@@ -162,13 +188,10 @@ api.interceptors.response.use(
 
         original.headers["Authorization"] = `Bearer ${newAccess}`;
         return api(original);
-      } catch {
+      } catch (refreshErr) {
         _isRefreshing = false;
-        _refreshQueue = [];
-        localStorage.removeItem("user_access_token");
-        localStorage.removeItem("user_refresh_token");
-        localStorage.removeItem("user_data");
-        // Let components handle the resulting 401 (show login prompt, redirect, etc.)
+        _onRefreshFailed(refreshErr);
+        notifyUserSessionExpired();
       }
     }
 
@@ -528,11 +551,10 @@ api.interceptors.request.use((config) => {
       config.headers["Authorization"] = `Bearer ${adminToken}`;
     }
   }
-  // Attach user token for /users/* routes — but NOT for admin routes
-  // (e.g. /admin/users/:id contains "/users/" but must keep the admin token)
+  // Attach user token for protected user routes (not admin URLs that contain "/users/")
   if (!isAdminUrl && USER_AUTH_URLS.some((u) => config.url?.includes(u))) {
     const userToken = localStorage.getItem("user_access_token");
-    if (userToken) {
+    if (userToken && !config.headers?.Authorization) {
       config.headers["Authorization"] = `Bearer ${userToken}`;
     }
   }
@@ -579,9 +601,9 @@ const userApi = (token) => ({
 
 export const getMyProfile       = (token) => api.get("/users/me",                 userApi(token));
 export const updateMyProfile    = (token, data) => api.put("/users/me", data,       userApi(token));
-export const getMyAppointments      = (token) => api.get("/users/me/appointments",                      userApi(token));
-export const getMyAppointmentById   = (token, id) => api.get(`/users/me/appointments/${id}`,            userApi(token));
-export const cancelMyAppointment    = (token, id) => api.patch(`/users/me/appointments/${id}/cancel`, {}, userApi(token));
+export const getMyAppointments      = (token) => api.get("/users/me/bookings",                      userApi(token));
+export const getMyAppointmentById   = (token, id) => api.get(`/appointments/${id}`,                  userApi(token));
+export const cancelMyAppointment    = (token, id) => api.post(`/appointments/${id}/cancel`, {},   userApi(token));
 export const getMyVouchers        = (token) => api.get("/users/me/vouchers",         userApi(token));
 export const getMyVoucherById     = (token, id) => api.get(`/users/me/vouchers/${id}`, userApi(token));
 export const changeMyPassword     = (token, data) => api.post("/users/me/change-password", data, userApi(token));

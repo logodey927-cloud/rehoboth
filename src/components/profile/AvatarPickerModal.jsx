@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { Upload, Close as CloseIcon, CheckCircle as CheckCircleIcon } from "@mui/icons-material";
 import { resolveUserAvatarUrl } from "../../utils/userAvatar";
-import { uploadUserAvatar, updateMyProfile } from "../../api/api";
+import { uploadUserAvatar, updateMyProfile, unwrapApiData } from "../../api/api";
 
 const PRESET_SEEDS = {
   female:  ["aurora", "bella", "cleo", "diana", "eve"],
@@ -95,7 +95,8 @@ export default function AvatarPickerModal({
     try {
       const res = await updateMyProfile(accessToken, { avatar_url: url });
       if (res.data?.success) {
-        onAvatarChange?.(res.data.user?.avatar_url || url);
+        const u = res.data.user ?? unwrapApiData(res);
+        onAvatarChange?.(u?.avatar_url || url);
       } else {
         onAvatarChange?.(url);
       }

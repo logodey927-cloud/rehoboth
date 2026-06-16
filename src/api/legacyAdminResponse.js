@@ -23,8 +23,25 @@ export function applyLegacyAdminResponse(body, url = '') {
     if (body.meta?.unreadCount != null) {
       body.unreadCount = body.meta.unreadCount;
     }
+  } else if (/\/admin\/users\/?$/.test(path)) {
+    body.users = Array.isArray(body.data) ? body.data : [];
+    if (body.meta?.total != null) {
+      body.total = body.meta.total;
+    }
   } else if (path.includes('/admin/crm/contacts')) {
     body.contacts = body.data?.contacts || (Array.isArray(body.data) ? body.data : []);
+  } else if (path.includes('/users/me/bookings')) {
+    body.appointments = Array.isArray(body.data) ? body.data : [];
+  } else if (path.match(/\/users\/me$/) || path.endsWith('/users/me')) {
+    body.user = body.data;
+  } else if (path.includes('/users/me/vouchers')) {
+    body.vouchers = Array.isArray(body.data) ? body.data : [];
+  } else if (
+    /\/appointments\/[^/]+$/.test(path) &&
+    !path.includes('/admin/') &&
+    !path.includes('/available-')
+  ) {
+    body.appointment = body.data;
   }
 
   return body;

@@ -70,7 +70,18 @@ export default function Login() {
     try {
       const res = await loginUser({ email: form.email, password: form.password });
       if (res.data?.success) {
-        const { accessToken, refreshToken, user } = unwrapApiData(res);
+        const payload = unwrapApiData(res);
+        if (payload?.requires2FA) {
+          setError("Two-factor authentication is required. Please complete OTP verification.");
+          return;
+        }
+        const { accessToken, refreshToken, user } = payload || {};
+        if (!accessToken || !user) {
+          const msg = "Login succeeded but session could not be established. Please try again.";
+          setError(msg);
+          swalError("Login Failed", msg);
+          return;
+        }
         login(accessToken, refreshToken, user);
         await swalSuccess("Welcome back!", `Hi ${user?.first_name || user?.email}!`);
         navigate(from, { replace: true });

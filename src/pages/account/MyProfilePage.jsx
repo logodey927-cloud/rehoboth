@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Grid, CircularProgress, Alert } from "@mui/material";
-import { getMyProfile, updateMyProfile, getMyAppointments, getMyVouchers } from "../../api/api";
+import { getMyProfile, updateMyProfile, getMyAppointments, getMyVouchers, unwrapApiData } from "../../api/api";
 import { useUserAuth } from "../../contexts/UserAuthContext";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { swalSuccess, swalError } from "../../utils/swal";
@@ -54,10 +54,12 @@ export default function MyProfilePage() {
     getMyProfile(accessToken)
       .then((res) => {
         if (res.data?.success) {
-          const u = res.data.user;
-          setForm(userToForm(u));
-          updateUser(u);
-          setProfileError("");
+          const u = res.data.user ?? unwrapApiData(res);
+          if (u) {
+            setForm(userToForm(u));
+            updateUser(u);
+            setProfileError("");
+          }
         }
       })
       .catch(() => {
@@ -108,8 +110,9 @@ export default function MyProfilePage() {
     try {
       const res = await updateMyProfile(accessToken, { avatar_url: null });
       if (res.data?.success) {
-        updateUser(res.data.user);
-        setForm(userToForm(res.data.user));
+        const u = res.data.user ?? unwrapApiData(res);
+        updateUser(u);
+        setForm(userToForm(u));
       }
     } catch {
       setForm((prev) => ({ ...prev, avatar_url: "" }));
@@ -132,8 +135,9 @@ export default function MyProfilePage() {
       };
       const res = await updateMyProfile(accessToken, payload);
       if (res.data?.success) {
-        updateUser(res.data.user);
-        setForm(userToForm(res.data.user));
+        const u = res.data.user ?? unwrapApiData(res);
+        updateUser(u);
+        setForm(userToForm(u));
         setEditing(false);
         swalSuccess("Profile Updated", "Your profile has been saved successfully.");
       }

@@ -1,27 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box, Typography, Grid, Paper, CircularProgress, Alert, Button,
-  Chip, LinearProgress, Divider,
+  Chip, LinearProgress,
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon,
   BookOnline as BookOnlineIcon,
-  AttachMoney as MoneyIcon,
+  Percent as PercentIcon,
 } from "@mui/icons-material";
 import { crmGetFunnel } from "../../api/api";
+import DataTable from "../components/DataTable";
+import StatCard from "../components/StatCard";
 import HeroPageSection from "../../components/sections/HeroPageSection";
 
 const STAGE_COLORS = {
   VISITOR: "#9e9e9e",
   LEAD: "#2196f3",
   PROSPECT: "#ff9800",
-  BOOKING_INTENT: "#9c27b0",
-  BOOKED: "#4caf50",
-  REPEAT_CLIENT: "#00bcd4",
-  CHURNED: "#f44336",
+  CLIENT: "#4caf50",
+  LOYAL: "#00bcd4",
 };
+
+const STAGE_CHIP_COLORS = {
+  VISITOR: { bg: "#9e9e9e15", color: "#757575" },
+  LEAD: { bg: "#2196f315", color: "#2196f3" },
+  PROSPECT: { bg: "#ff980015", color: "#ff9800" },
+  CLIENT: { bg: "#4caf5015", color: "#4caf50" },
+  LOYAL: { bg: "#00bcd415", color: "#00bcd4" },
+};
+
+function normalizeFunnelResponse(raw) {
+  if (!raw) {
+    return { totalContacts: 0, stages: [], conversionRates: {} };
+  }
+
+  let stages = [];
+  if (Array.isArray(raw.stages)) {
+    stages = raw.stages.map((s) => ({
+      stage: s.stage,
+      count: s.count ?? 0,
+      percentage: s.percentage ?? 0,
+    }));
+  } else if (raw.stages && typeof raw.stages === "object") {
+    stages = Object.entries(raw.stages).map(([stage, value]) => ({
+      stage,
+      count: typeof value === "object" ? (value?.count ?? 0) : (value ?? 0),
+      percentage: typeof value === "object" ? (value?.percentage ?? 0) : 0,
+    }));
+  }
+
+  const totalContacts = raw.total_contacts ?? raw.totalContacts ?? 0;
+  const conversionRates = raw.conversion_rates ?? raw.conversionRates ?? {};
+
+  if (totalContacts > 0) {
+    stages = stages.map((s) => ({
+      ...s,
+      percentage: s.percentage || parseFloat(((s.count / totalContacts) * 100).toFixed(2)),
+    }));
+  }
+
+  return { totalContacts, stages, conversionRates };
+}
 
 function FunnelStageBar({ stage, count, maxCount }) {
   const pct = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
@@ -40,32 +81,24 @@ function FunnelStageBar({ stage, count, maxCount }) {
         variant="determinate"
         value={pct}
         sx={{
-          height: 10,
-          borderRadius: 5,
+          height: 8,
+          borderRadius: 4,
           bgcolor: "grey.100",
-          "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 5 },
+          "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 4 },
         }}
       />
     </Box>
   );
 }
 
-function StatCard({ icon, label, value, color }) {
+function renderStageChip(stage) {
+  const colors = STAGE_CHIP_COLORS[stage] || { bg: "#e0e0e0", color: "#757575" };
   return (
-    <Paper
-      elevation={0}
-      sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%" }}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
-        <Box sx={{ color: color || "primary.main" }}>{icon}</Box>
-        <Typography variant="body2" color="text.secondary">
-          {label}
-        </Typography>
-      </Box>
-      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-        {value ?? "—"}
-      </Typography>
-    </Paper>
+    <Chip
+      label={stage?.replace(/_/g, " ") || "—"}
+      size="small"
+      sx={{ backgroundColor: colors.bg, color: colors.color, fontWeight: 500, borderRadius: 0 }}
+    />
   );
 }
 
@@ -74,173 +107,236 @@ export default function CrmFunnelPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => { fetchFunnel(); }, []);
-
   const fetchFunnel = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await crmGetFunnel();
       setData(res.data?.data || res.data || null);
-    } catch (err) {
+    } catch {
       setError("Failed to load funnel data. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const stages = data?.stages || {};
-  const maxCount = Math.max(...Object.values(stages).map((s) => s?.count ?? s ?? 0), 1);
-  const metrics = data?.metrics || data?.conversions || {};
+  useEffect(() => { fetchFunnel(); }, []);
+
+  const { totalContacts, stages, conversionRates } = useMemo(
+    () => normalizeFunnelResponse(data),
+    [data]
+  );
+
+  const summaryCounts = useMemo(() => {
+    const leadCount = stages.find((s) => s.stage === "LEAD")?.count ?? 0;
+    const clientCount = stages.find((s) => s.stage === "CLIENT")?.count ?? 0;
+    const conversionRate =
+      totalContacts > 0 ? ((clientCount / totalContacts) * 100).toFixed(1) : "0";
+    return { totalContacts, leadCount, clientCount, conversionRate };
+  }, [stages, totalContacts]);
+
+  const stageRows = useMemo(() => {
+    return stages.map((s, i) => {
+      const prevStage = i > 0 ? stages[i - 1].stage : null;
+      const convKey = prevStage
+        ? `${prevStage.toLowerCase()}_to_${s.stage.toLowerCase()}`
+        : null;
+      const conversionFromPrev = convKey ? conversionRates[convKey] : null;
+      return {
+        id: s.stage,
+        stage: s.stage,
+        count: s.count,
+        percentage: s.percentage,
+        conversion_from_prev: conversionFromPrev,
+      };
+    });
+  }, [stages, conversionRates]);
+
+  const maxCount = Math.max(...stages.map((s) => s.count), 1);
+
+  const essentialColumns = [
+    {
+      id: "row_number",
+      label: "No.",
+      width: 60,
+      align: "center",
+      render: (_, __, n) => (
+        <Typography variant="body2" sx={{ textAlign: "center", fontWeight: 500 }}>{n}</Typography>
+      ),
+    },
+    {
+      id: "stage",
+      label: "Stage",
+      render: (v) => renderStageChip(v),
+    },
+    {
+      id: "count",
+      label: "Contacts",
+      width: 110,
+      render: (v) => (
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          {(v ?? 0).toLocaleString()}
+        </Typography>
+      ),
+    },
+    {
+      id: "percentage",
+      label: "% of Total",
+      width: 110,
+      render: (v) => (
+        <Typography variant="body2" color="text.secondary">
+          {v != null ? `${v}%` : "—"}
+        </Typography>
+      ),
+    },
+    {
+      id: "conversion_from_prev",
+      label: "From Previous",
+      width: 130,
+      render: (v) =>
+        v != null ? (
+          <Chip
+            label={`${v}%`}
+            size="small"
+            sx={{
+              backgroundColor: v >= 50 ? "#4caf5015" : v >= 20 ? "#ff980015" : "#f4433615",
+              color: v >= 50 ? "#4caf50" : v >= 20 ? "#ff9800" : "#f44336",
+              fontWeight: 600,
+              borderRadius: 0,
+            }}
+          />
+        ) : (
+          <Typography variant="body2" color="text.secondary">—</Typography>
+        ),
+    },
+  ];
+
+  const allColumns = [
+    ...essentialColumns,
+    {
+      id: "stage_label",
+      label: "Description",
+      render: (_, row) => (
+        <Typography variant="body2" color="text.secondary">
+          Contacts at the {row.stage?.replace(/_/g, " ").toLowerCase()} stage of the funnel
+        </Typography>
+      ),
+    },
+  ];
+
+  if (loading && !data) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
       <HeroPageSection
         title="CRM Funnel"
-        subtitle="Visitor-to-client conversion funnel and key metrics"
+        breadcrumb={[
+          { label: "Home", link: "/" },
+          { label: "Admin", link: "/admin" },
+          { label: "CRM Funnel" },
+        ]}
+        borderRadius={true}
+      >
+        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }} sx={{ width: "100%" }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: "flex", minWidth: 0 }}>
+            <StatCard
+              title="Total Contacts"
+              value={summaryCounts.totalContacts.toLocaleString()}
+              icon={PeopleIcon}
+              color="#2196f3"
+              loading={loading}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: "flex", minWidth: 0 }}>
+            <StatCard
+              title="Leads"
+              value={summaryCounts.leadCount.toLocaleString()}
+              icon={TrendingUpIcon}
+              color="#ff9800"
+              loading={loading}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: "flex", minWidth: 0 }}>
+            <StatCard
+              title="Clients"
+              value={summaryCounts.clientCount.toLocaleString()}
+              icon={BookOnlineIcon}
+              color="#4caf50"
+              loading={loading}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} sx={{ display: "flex", minWidth: 0 }}>
+            <StatCard
+              title="Visitor → Client"
+              value={`${summaryCounts.conversionRate}%`}
+              icon={PercentIcon}
+              color="#9c27b0"
+              loading={loading}
+            />
+          </Grid>
+        </Grid>
+      </HeroPageSection>
+
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+        }}
+      >
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={loading ? <CircularProgress size={14} /> : <RefreshIcon />}
+          onClick={fetchFunnel}
+          disabled={loading}
+          sx={{ borderRadius: 0, textTransform: "none" }}
+        >
+          Refresh
+        </Button>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <DataTable
+        essentialColumns={essentialColumns}
+        allColumns={allColumns}
+        rows={stageRows}
+        loading={loading && !data}
+        searchPlaceholder="Search funnel stages..."
+        detailsActionIcon="more"
       />
 
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-          <Button
-            startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
-            onClick={fetchFunnel}
-            disabled={loading}
-            size="small"
-          >
-            Refresh
-          </Button>
-        </Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        {loading && !data ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            {/* Summary stats */}
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-              <Grid item xs={6} md={3}>
-                <StatCard
-                  icon={<PeopleIcon />}
-                  label="Total Contacts"
-                  value={data?.totalContacts?.toLocaleString() ?? data?.total_contacts?.toLocaleString()}
-                  color="#2196f3"
-                />
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <StatCard
-                  icon={<TrendingUpIcon />}
-                  label="Leads (30 days)"
-                  value={data?.newLeads30d?.toLocaleString() ?? data?.new_leads_30d?.toLocaleString()}
-                  color="#ff9800"
-                />
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <StatCard
-                  icon={<BookOnlineIcon />}
-                  label="Bookings (30 days)"
-                  value={data?.bookings30d?.toLocaleString() ?? data?.bookings_30d?.toLocaleString()}
-                  color="#4caf50"
-                />
-              </Grid>
-              <Grid item xs={6} md={3}>
-                <StatCard
-                  icon={<MoneyIcon />}
-                  label="Conversion Rate"
-                  value={
-                    data?.conversionRate != null
-                      ? `${data.conversionRate}%`
-                      : data?.conversion_rate != null
-                      ? `${data.conversion_rate}%`
-                      : null
-                  }
-                  color="#9c27b0"
-                />
-              </Grid>
-            </Grid>
-
-            {/* Funnel stages */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={7}>
-                <Paper
-                  elevation={0}
-                  sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 2 }}
-                >
-                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                    Funnel Stages
-                  </Typography>
-                  {Object.keys(STAGE_COLORS).map((stage) => {
-                    const raw = stages[stage];
-                    const count = typeof raw === "object" ? (raw?.count ?? 0) : (raw ?? 0);
-                    return (
-                      <FunnelStageBar key={stage} stage={stage} count={count} maxCount={maxCount} />
-                    );
-                  })}
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={5}>
-                <Paper
-                  elevation={0}
-                  sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%" }}
-                >
-                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-                    Conversion Rates
-                  </Typography>
-                  {Object.keys(stages).length === 0 ? (
-                    <Typography color="text.secondary" variant="body2">
-                      No stage data available.
-                    </Typography>
-                  ) : (
-                    Object.entries(stages).map(([stage, raw]) => {
-                      const count = typeof raw === "object" ? (raw?.count ?? 0) : (raw ?? 0);
-                      const convPct =
-                        typeof raw === "object" ? raw?.conversionFromPrev ?? raw?.conversion_rate : null;
-                      return (
-                        <Box
-                          key={stage}
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            py: 1.2,
-                            borderBottom: "1px solid",
-                            borderColor: "divider",
-                            "&:last-child": { borderBottom: 0 },
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {stage.replace(/_/g, " ")}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {count.toLocaleString()} contacts
-                            </Typography>
-                          </Box>
-                          {convPct != null && (
-                            <Chip
-                              label={`${convPct}%`}
-                              size="small"
-                              color={convPct >= 50 ? "success" : convPct >= 20 ? "warning" : "error"}
-                            />
-                          )}
-                        </Box>
-                      );
-                    })
-                  )}
-                </Paper>
-              </Grid>
-            </Grid>
-          </>
-        )}
-      </Box>
+      {stages.length > 0 && (
+        <Paper
+          elevation={0}
+          sx={{
+            mt: 3,
+            p: 3,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "#1a1f2e" }}>
+            Funnel Overview
+          </Typography>
+          {stages.map((s) => (
+            <FunnelStageBar key={s.stage} stage={s.stage} count={s.count} maxCount={maxCount} />
+          ))}
+        </Paper>
+      )}
     </Box>
   );
 }
