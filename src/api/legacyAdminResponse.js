@@ -30,7 +30,7 @@ export function applyLegacyAdminResponse(body, url = '') {
     }
   } else if (path.includes('/admin/crm/contacts')) {
     body.contacts = body.data?.contacts || (Array.isArray(body.data) ? body.data : []);
-  } else if (path.includes('/users/me/bookings')) {
+  } else if (path.includes('/users/me/bookings') || path.includes('/users/me/appointments')) {
     body.appointments = Array.isArray(body.data) ? body.data : [];
   } else if (path.match(/\/users\/me$/) || path.endsWith('/users/me')) {
     body.user = body.data;
