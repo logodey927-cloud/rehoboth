@@ -28,6 +28,13 @@ export function applyLegacyAdminResponse(body, url = '') {
     if (body.meta?.total != null) {
       body.total = body.meta.total;
     }
+  } else if (path === '/services' || /\/admin\/services\/?$/.test(path)) {
+    body.services = Array.isArray(body.data) ? body.data : [];
+    if (body.data && !Array.isArray(body.data)) {
+      body.service = body.data;
+    }
+  } else if (path.match(/\/admin\/services\/[^/]+$/) || path.match(/\/services\/[^/]+$/)) {
+    body.service = body.data;
   } else if (path.includes('/admin/crm/contacts')) {
     body.contacts = body.data?.contacts || (Array.isArray(body.data) ? body.data : []);
   } else if (path.includes('/users/me/bookings') || path.includes('/users/me/appointments')) {

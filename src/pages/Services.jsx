@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Container, CircularProgress, Alert } from "@mui/material";
 import Sidebar from "../components/Services/Sidebar";
 import TreatmentDetails from "../components/Services/TreatmentDetails";
-import { getServices } from "../api/api";
+import { getServices, unwrapServicesList } from "../api/api";
 import PromoBannerSection02 from "../components/sections/PromoBannerSection02";
 import HeroPageSection from "../components/sections/HeroPageSection";
 import TestimonialsSection from "../components/sections/TestimonialsSection";
@@ -27,7 +27,7 @@ function Services() {
       setError(null);
       const response = await getServices();
       if (response.data?.success) {
-        setServices(response.data.services || []);
+        setServices(unwrapServicesList(response));
       } else {
         setError("Failed to load services");
       }

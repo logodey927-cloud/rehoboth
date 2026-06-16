@@ -28,7 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { prepareAppointment, getAvailableDates, getServices, getAutoAssignedTeamMember, getTeamMemberTimeRange, createPayPalIntentOrder, verifyVoucherCode } from "../api/api";
+import { prepareAppointment, getAvailableDates, getServices, unwrapServicesList, getAutoAssignedTeamMember, getTeamMemberTimeRange, createPayPalIntentOrder, verifyVoucherCode } from "../api/api";
 import { swalError, ensureSweetAlertReady } from "../utils/swal";
 import { useUserAuth } from "../contexts/UserAuthContext";
 import PaymentBreakdown from "./payments/PaymentBreakdown";
@@ -490,7 +490,7 @@ export default function AppointmentForm({
       setServicesFetchError("");
       const response = await getServices();
       if (response.data?.success) {
-        setServices(response.data.services || []);
+        setServices(unwrapServicesList(response));
       } else {
         setServicesFetchError("Could not load services. Please try again.");
       }

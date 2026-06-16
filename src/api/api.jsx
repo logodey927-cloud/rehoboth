@@ -16,6 +16,13 @@ export function unwrapApiData(response) {
   return response?.data?.data ?? response?.data;
 }
 
+/** Catalog services list from GET /services (legacy `services` or `data`). */
+export function unwrapServicesList(response) {
+  const body = response?.data;
+  if (!body?.success) return [];
+  return body.services ?? (Array.isArray(body.data) ? body.data : []);
+}
+
 /** Flatten API validation `details` into `{ field: message }`. */
 export function getApiFieldErrors(error) {
   const details = error?.response?.data?.details;

@@ -1,6 +1,6 @@
 import { Box, Grid, CircularProgress, Alert } from "@mui/material";
 import { useState, useEffect } from "react";
-import { getServices } from "../../api/api";
+import { getServices, unwrapServicesList } from "../../api/api";
 import MassageSidebar from "../common09/MassageSidebar";
 import MassageContent from "../common09/MassageContent";
 import { AnimatePresence } from "framer-motion";
@@ -29,7 +29,7 @@ const MassageSection = () => {
       setError(null);
       const response = await getServices();
       if (response.data?.success) {
-        const services = response.data.services || [];
+        const services = unwrapServicesList(response);
         setMassages(services);
         if (services.length > 0) {
           setActive(services[0]);
