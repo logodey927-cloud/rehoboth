@@ -760,7 +760,7 @@ export const getChatThreads     = ()                         => api.get("/users/
 export const getChatMessages    = (threadId, markRead = true) => api.get(`/users/me/chat/threads/${threadId}/messages${markRead ? "?markRead=1" : ""}`);
 export const sendChatMessage    = (threadId, data)           => api.post(`/users/me/chat/threads/${threadId}/messages`, data);
 export const requestHumanAgent  = (threadId)                 => api.post(`/users/me/chat/threads/${threadId}/request-human`);
-export const getChatFaq         = (channel = "rehoboth")     => api.get(`/users/me/chat/faq?channel=${channel}`);
+export const getChatFaq         = (channel = "rehoboth")     => api.get(`/chat/faq?channel=${channel}`);
 
 // ── Live chat (admin) ─────────────────────────────────────────────────────────
 export const adminGetChatThreads  = (params)       => api.get("/admin/chat/threads", { params });
