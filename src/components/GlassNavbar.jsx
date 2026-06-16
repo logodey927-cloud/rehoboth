@@ -36,6 +36,7 @@ import StyledButton from "./common09/StyledButton";
 import { navigationData } from "../data/NavigationData";
 import { useUserAuth } from "../contexts/UserAuthContext";
 import NavBellDropdown from "./notifications/NavBellDropdown";
+import { resolveUserAvatarUrl } from "../utils/userAvatar";
 
 const GlassNavbar = () => {
   const [_isScrolled, setIsScrolled] = useState(false);
@@ -58,6 +59,7 @@ const GlassNavbar = () => {
     navigate("/login");
   };
   const initials = user ? `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase() || "U" : "U";
+  const avatarSrc = user ? resolveUserAvatarUrl(user) : undefined;
 
   // Scroll detection logic
   useEffect(() => {
@@ -406,7 +408,11 @@ const GlassNavbar = () => {
                   {isAuthenticated ? (
                     <>
                       <IconButton onClick={handleAccountMenuOpen} size="small">
-                        <Avatar sx={{ width: 34, height: 34, bgcolor: "secondary.main", fontSize: 13, fontWeight: 700 }}>
+                        <Avatar
+                          src={avatarSrc}
+                          alt={user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "Account"}
+                          sx={{ width: 34, height: 34, bgcolor: "secondary.main", fontSize: 13, fontWeight: 700 }}
+                        >
                           {initials}
                         </Avatar>
                       </IconButton>
