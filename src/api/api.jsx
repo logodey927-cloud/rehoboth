@@ -68,6 +68,14 @@ export function unwrapServicesList(response) {
   return raw.map(normalizeCatalogService).filter(Boolean);
 }
 
+const BOOKING_SERVICE_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Booking availability APIs require a flat `services` table UUID, not catalog seed ids. */
+export function isBookingServiceId(id) {
+  return typeof id === "string" && BOOKING_SERVICE_UUID_RE.test(id);
+}
+
 /** Flatten API validation `details` into `{ field: message }`. */
 export function getApiFieldErrors(error) {
   const details = error?.response?.data?.details;
@@ -266,15 +274,23 @@ export const prepareAppointment = (data) => {
 };
 export const getAppointments = () => api.get("/admin/appointments", { params: { limit: 100 } });
 export const getAppointmentById = (id) => api.get(`/admin/appointments/${id}`);
-export const getAvailableDates = (year, month, serviceId = null, teamMemberId = null) =>
-  api.get("/appointments/available-dates", {
+export const getAvailableDates = (year, month, serviceId = null, teamMemberId = null) => {
+  if (!isBookingServiceId(serviceId)) {
+    return Promise.reject(
+      Object.assign(new Error("Booking availability requires a bookable service."), {
+        code: "INVALID_SERVICE_ID",
+      })
+    );
+  }
+  return api.get("/appointments/available-dates", {
     params: {
       year,
       month,
-      ...(serviceId ? { service_id: serviceId } : {}),
+      service_id: serviceId,
       ...(teamMemberId ? { team_member_id: teamMemberId } : {}),
     },
   });
+};
 
 // Team member auto-assignment preview for booking (public)
 export const getAutoAssignedTeamMember = (service, treatment, clientGender) =>

@@ -28,7 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { prepareAppointment, getAvailableDates, getServices, unwrapServicesList, getAutoAssignedTeamMember, getTeamMemberTimeRange, createPayPalIntentOrder, verifyVoucherCode } from "../api/api";
+import { prepareAppointment, getAvailableDates, getServices, unwrapServicesList, isBookingServiceId, getAutoAssignedTeamMember, getTeamMemberTimeRange, createPayPalIntentOrder, verifyVoucherCode } from "../api/api";
 import { swalError, ensureSweetAlertReady } from "../utils/swal";
 import { useUserAuth } from "../contexts/UserAuthContext";
 import PaymentBreakdown from "./payments/PaymentBreakdown";
@@ -513,8 +513,20 @@ export default function AppointmentForm({
       const year = dateObj.year();
       const month = dateObj.month() + 1;
       
-      // Get service_id from selected service
+      // Get service_id from selected service (must be a booking-service UUID)
       const serviceId = selectedService?.id || null;
+
+      if (!isBookingServiceId(serviceId)) {
+        setCalendarData({
+          year,
+          month,
+          bookedDates: {},
+          blockedDates: {},
+          blockedTimeSlots: [],
+          availableDates: {},
+        });
+        return;
+      }
       
       const res = await getAvailableDates(year, month, serviceId);
       if (res.data?.success) {
