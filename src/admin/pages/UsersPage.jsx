@@ -123,7 +123,7 @@ export default function UsersPage() {
     total:    users.length,
     active:   users.filter((u) => u.is_active).length,
     inactive: users.filter((u) => !u.is_active).length,
-    verified: users.filter((u) => u.email_verified).length,
+    verified: users.filter((u) => u.email_verified || u.email_verified_at).length,
   }), [users]);
 
   const filteredUsers = useMemo(
@@ -282,17 +282,20 @@ export default function UsersPage() {
     </Box>
   );
 
-  const renderEmailVerifiedChip = (value) => (
+  const renderEmailVerifiedChip = (value, row) => {
+    const verified = value ?? row?.email_verified ?? Boolean(row?.email_verified_at);
+    return (
     <Chip
-      label={value ? "Verified" : "Unverified"}
+      label={verified ? "Verified" : "Unverified"}
       size="small"
       sx={
-        value
+        verified
           ? { backgroundColor: "#4caf5015", color: "#4caf50", fontWeight: 500, borderRadius: 0 }
           : { backgroundColor: "#f58c0015", color: "#f58c00", fontWeight: 500, borderRadius: 0 }
       }
     />
   );
+  };
 
   const renderStatusChip = (value) => (
     <Chip

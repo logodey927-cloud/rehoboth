@@ -28,6 +28,8 @@ export function applyLegacyAdminResponse(body, url = '') {
     if (body.meta?.total != null) {
       body.total = body.meta.total;
     }
+  } else if (/\/admin\/users\/[^/]+$/.test(path)) {
+    body.user = body.data?.user || body.data;
   } else if (path.match(/\/admin\/services\/[^/]+\/team-members$/)) {
     body.teamMembers = body.data?.teamMembers || [];
   } else if (path.includes('/admin/team')) {

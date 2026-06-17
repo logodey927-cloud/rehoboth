@@ -657,7 +657,8 @@ export const registerUser    = (data) => api.post("/auth/user/register", data);
 export const loginUser       = (data) => api.post("/auth/user/login", data);
 export const logoutUser      = (refreshToken) => api.post("/auth/user/logout", { refreshToken });
 export const refreshUserToken= (refreshToken) => api.post("/auth/user/refresh-token", { refreshToken });
-export const verifyUserEmail = (token) => api.get(`/auth/user/verify-email?token=${token}`);
+export const verifyUserEmail = (token) =>
+  api.get(`/auth/user/verify-email?token=${encodeURIComponent(token)}`);
 export const forgotPasswordUser  = (email) => api.post("/auth/user/forgot-password", { email });
 export const resetPasswordUser   = (data)  => api.post("/auth/user/reset-password", data);
 export const resendVerificationEmail = (email) => api.post("/auth/user/resend-verification", { email });

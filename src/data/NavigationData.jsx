@@ -76,14 +76,6 @@ export const navigationData = {
       description: "Get in touch",
     },
   ],
-  ctaButtons: [
-    {
-      text: "Book Appointment",
-      href: "/book-appointment",
-      variant: "primary",
-      icon: "calendar_today",
-    },
-  ],
   socialLinks: [
     { platform: "Facebook", href: "#", icon: "facebook" },
     { platform: "Instagram", href: "#", icon: "instagram" },
