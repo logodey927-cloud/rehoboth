@@ -193,8 +193,13 @@ export default function UserDetailsModal({
     setError("");
     adminGetUserById(userId)
       .then((res) => {
-        if (res.data?.success) setDetail(res.data);
-        else setError("Failed to load user details.");
+        if (res.data?.success) {
+          setDetail({
+            user: res.data.user || res.data.data?.user,
+            recent_bookings: res.data.data?.recent_bookings || [],
+            recent_payments: res.data.data?.recent_payments || [],
+          });
+        } else setError("Failed to load user details.");
       })
       .catch(() => setError("Failed to load user details."))
       .finally(() => setLoading(false));
@@ -223,7 +228,7 @@ export default function UserDetailsModal({
       gender:         u?.gender        || "",
       date_of_birth:  u?.date_of_birth || "",
       address:        u?.address       || "",
-      email_verified: u?.email_verified ?? false,
+      email_verified: u?.email_verified ?? Boolean(u?.email_verified_at),
       is_active:      u?.is_active     ?? true,
     });
     setEditError("");
@@ -358,7 +363,7 @@ export default function UserDetailsModal({
                 }}
               />
               <Chip
-                label={(editMode ? editData.email_verified : user?.email_verified) ? "Email verified" : "Unverified"}
+                label={(editMode ? editData.email_verified : (user?.email_verified ?? Boolean(user?.email_verified_at))) ? "Email verified" : "Unverified"}
                 size="small"
                 sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "#fff", fontWeight: 600, borderRadius: 0 }}
               />

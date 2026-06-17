@@ -31,7 +31,8 @@ export default function VerifyEmail() {
       .then((res) => {
         if (res.data?.success) {
           setStatus("success");
-          setMessage(unwrapApiData(res)?.message || "Email verified successfully.");
+          const payload = unwrapApiData(res);
+          setMessage(payload?.message || "Email verified successfully.");
         } else {
           setStatus("error");
           setMessage("Verification failed.");
@@ -58,8 +59,12 @@ export default function VerifyEmail() {
     setResending(true);
     setResendError("");
     try {
-      await resendVerificationEmail(resendEmail.trim());
-      setResent(true);
+      const res = await resendVerificationEmail(resendEmail.trim());
+      if (res.data?.success) {
+        setResent(true);
+      } else {
+        setResendError(res.data?.message || "Failed to resend. Please try again.");
+      }
     } catch (err) {
       setResendError(getApiErrorMessage(err, "Failed to resend. Please try again."));
     } finally {

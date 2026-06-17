@@ -462,46 +462,40 @@ export const verifyVoucherPaymentAdmin = (voucherIssueId, data = {}) =>
 export const getRecentVoucherIssuesAdmin = (limit = 5) =>
   api.get("/admin/vouchers/issues/recent", { params: { limit } });
 
-// File Upload API — presigned S3 flow (POST /upload/presign → PUT to S3)
-async function uploadViaPresign(file, folder) {
+// File Upload API — multipart upload to Cloudinary via backend
+async function uploadViaCloudinary(file, folder) {
   const adminToken = localStorage.getItem("admin_token");
   const userToken = localStorage.getItem("user_access_token");
   const token = adminToken || userToken;
 
-  const presignRes = await api.post(
-    "/upload/presign",
-    { folder, content_type: file.type },
-    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-  );
+  const formData = new FormData();
+  formData.append("image", file);
+  formData.append("folder", folder);
 
-  const payload = presignRes.data?.data ?? presignRes.data;
-  const uploadUrl = payload?.upload_url;
-  const publicUrl = payload?.public_url;
+  const uploadRes = await api.post("/upload/image", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
 
-  if (!uploadUrl || !publicUrl) {
+  const body = uploadRes.data;
+  const url = body?.url ?? body?.data?.url;
+
+  if (!url) {
     throw new Error("Failed to get upload URL");
   }
 
-  const putRes = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-
-  if (!putRes.ok) {
-    throw new Error("Failed to upload file to storage");
-  }
-
-  return { data: { success: true, url: publicUrl } };
+  return { data: { success: true, url } };
 }
 
-export const uploadVoucherImage = (file) => uploadViaPresign(file, "voucher");
+export const uploadVoucherImage = (file) => uploadViaCloudinary(file, "voucher");
 
-export const uploadServiceImage = (file) => uploadViaPresign(file, "service");
+export const uploadServiceImage = (file) => uploadViaCloudinary(file, "service");
 
-export const uploadBlogImage = (file) => uploadViaPresign(file, "blog");
+export const uploadBlogImage = (file) => uploadViaCloudinary(file, "blog");
 
-export const uploadTeamImage = (file) => uploadViaPresign(file, "team");
+export const uploadTeamImage = (file) => uploadViaCloudinary(file, "team");
 
 // Services API (Public)
 export const getServices = (params = {}) => api.get("/services", { params });
@@ -657,7 +651,8 @@ export const registerUser    = (data) => api.post("/auth/user/register", data);
 export const loginUser       = (data) => api.post("/auth/user/login", data);
 export const logoutUser      = (refreshToken) => api.post("/auth/user/logout", { refreshToken });
 export const refreshUserToken= (refreshToken) => api.post("/auth/user/refresh-token", { refreshToken });
-export const verifyUserEmail = (token) => api.get(`/auth/user/verify-email?token=${token}`);
+export const verifyUserEmail = (token) =>
+  api.get(`/auth/user/verify-email?token=${encodeURIComponent(token)}`);
 export const forgotPasswordUser  = (email) => api.post("/auth/user/forgot-password", { email });
 export const resetPasswordUser   = (data)  => api.post("/auth/user/reset-password", data);
 export const resendVerificationEmail = (email) => api.post("/auth/user/resend-verification", { email });

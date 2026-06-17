@@ -242,18 +242,7 @@ const GlassNavbar = () => {
       </Box>
 
       <Box sx={{ px: 2, py: 2, mt: "auto" }}>
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          {navigationData.ctaButtons.map((button, index) => (
-            <StyledButton
-              key={index}
-              text={button.text}
-              to={button.href}
-              variant="custom"
-              onClick={closeDrawer}
-            />
-          ))}
-        </Box>
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ mb: 2 }} />
         {isAuthenticated ? (
           <Box>
             <Typography variant="caption" color="text.secondary" display="block" mb={1}>
@@ -389,18 +378,9 @@ const GlassNavbar = () => {
                 </Box>
               )}
 
-              {/* CTA Buttons + Account */}
+              {/* Account actions */}
               {!isMobile && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  {navigationData.ctaButtons.map((button, index) => (
-                    <StyledButton
-                      key={index}
-                      text={button.text}
-                      to={button.href}
-                      variant={button.variant}
-                    />
-                  ))}
-
                   {/* Notification bell — authenticated only */}
                   {isAuthenticated && <NavBellDropdown />}
 
