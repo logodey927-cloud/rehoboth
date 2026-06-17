@@ -389,8 +389,8 @@ export const initializeAdmin = (username, password, email) =>
   api.post("/auth/initialize", { username, password, email });
 
 // Voucher API
-export const getAllVouchers = () => api.get("/vouchers");
-export const getVoucherById = (id) => api.get(`/vouchers/${id}`);
+export const getAllVouchers = () => api.get("/vouchers/public");
+export const getVoucherById = (id) => api.get(`/vouchers/public/${id}`);
 export const getVoucherByIdAdmin = (id) => api.get(`/admin/vouchers/${id}`);
 export const requestVoucher = (data) => api.post("/vouchers/request", data, {
   timeout: 30000, // 30 second timeout for voucher requests (emails may take time)
@@ -398,7 +398,7 @@ export const requestVoucher = (data) => api.post("/vouchers/request", data, {
 export const verifyVoucherCode = (code) => api.post(`/vouchers/${code}/verify`);
 
 // Public Voucher Purchase API (prepaid vouchers)
-export const getPurchasableVouchers = () => api.get("/vouchers/purchase");
+export const getPurchasableVouchers = () => api.get("/vouchers/public");
 export const purchaseVoucher = (data) => api.post("/vouchers/purchase", data);
 export const uploadVoucherPaymentProof = (voucherIssueId, formData) =>
   api.post(`/vouchers/issues/${voucherIssueId}/payment/upload`, formData, {
@@ -462,46 +462,46 @@ export const verifyVoucherPaymentAdmin = (voucherIssueId, data = {}) =>
 export const getRecentVoucherIssuesAdmin = (limit = 5) =>
   api.get("/admin/vouchers/issues/recent", { params: { limit } });
 
-// File Upload API
-export const uploadVoucherImage = (file) => {
-  const formData = new FormData();
-  formData.append("image", file);
-  return api.post("/upload/voucher-image", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-};
+// File Upload API — presigned S3 flow (POST /upload/presign → PUT to S3)
+async function uploadViaPresign(file, folder) {
+  const adminToken = localStorage.getItem("admin_token");
+  const userToken = localStorage.getItem("user_access_token");
+  const token = adminToken || userToken;
 
-export const uploadServiceImage = (file) => {
-  const formData = new FormData();
-  formData.append("image", file);
-  return api.post("/upload/service-image", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-};
+  const presignRes = await api.post(
+    "/upload/presign",
+    { folder, content_type: file.type },
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+  );
 
-export const uploadBlogImage = (file) => {
-  const formData = new FormData();
-  formData.append("image", file);
-  return api.post("/upload/blog-image", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-};
+  const payload = presignRes.data?.data ?? presignRes.data;
+  const uploadUrl = payload?.upload_url;
+  const publicUrl = payload?.public_url;
 
-export const uploadTeamImage = (file) => {
-  const formData = new FormData();
-  formData.append("image", file);
-  return api.post("/upload/team-image", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+  if (!uploadUrl || !publicUrl) {
+    throw new Error("Failed to get upload URL");
+  }
+
+  const putRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
   });
-};
+
+  if (!putRes.ok) {
+    throw new Error("Failed to upload file to storage");
+  }
+
+  return { data: { success: true, url: publicUrl } };
+}
+
+export const uploadVoucherImage = (file) => uploadViaPresign(file, "voucher");
+
+export const uploadServiceImage = (file) => uploadViaPresign(file, "service");
+
+export const uploadBlogImage = (file) => uploadViaPresign(file, "blog");
+
+export const uploadTeamImage = (file) => uploadViaPresign(file, "team");
 
 // Services API (Public)
 export const getServices = (params = {}) => api.get("/services", { params });
@@ -512,7 +512,7 @@ export const getAllServicesAdmin = (params = {}) =>
   api.get("/admin/services", { params });
 export const getServiceByIdAdmin = (id) => api.get(`/admin/services/${id}`);
 export const createService = (data) => api.post("/admin/services", data);
-export const updateService = (id, data) => api.put(`/admin/services/${id}`, data);
+export const updateService = (id, data) => api.patch(`/admin/services/${id}`, data);
 export const deleteService = (id, hardDelete = false) =>
   api.delete(`/admin/services/${id}`, { params: { hardDelete } });
 
@@ -612,8 +612,8 @@ export const refundPayment = (appointmentId, data) =>
 api.interceptors.request.use((config) => {
   const isAdminUrl = ADMIN_URL_PATTERNS.some((p) => config.url?.includes(p));
 
-  // Attach admin token for admin-protected routes
-  if (isAdminUrl) {
+  // Attach admin token for admin-protected routes and uploads from admin UI
+  if (isAdminUrl || (config.url?.includes("/upload/") && localStorage.getItem("admin_token"))) {
     const adminToken = localStorage.getItem("admin_token");
     if (adminToken) {
       config.headers["Authorization"] = `Bearer ${adminToken}`;

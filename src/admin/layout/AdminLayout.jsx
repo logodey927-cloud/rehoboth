@@ -28,6 +28,7 @@ import AdminSidebar from "../components/AdminSidebar";
 import AdminRightSidebar from "../components/AdminRightSidebar";
 import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
+import { AdminLayoutProvider } from "../context/AdminLayoutContext";
 import { uploadAdminAvatar } from "../../api/api";
 import { swalError } from "../../utils/swal";
 
@@ -370,7 +371,9 @@ export default function AdminLayout() {
                 pb: { xs: 8, sm: 10, md: 12 },
               }}
             >
-              <Outlet />
+              <AdminLayoutProvider sidebarOpen={sidebarOpen}>
+                <Outlet />
+              </AdminLayoutProvider>
             </Box>
             
             {/* Right Sidebar - Available on all pages, Large Screens only, Overlay when open */}
