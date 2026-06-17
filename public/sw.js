@@ -59,6 +59,7 @@ function isNetworkOnly(request) {
 }
 
 function isImage(request) {
+  if (request.method !== "GET") return false;
   return request.destination === "image" ||
     /\.(png|webp|jpg|jpeg|svg|gif|ico)$/i.test(new URL(request.url).pathname);
 }
