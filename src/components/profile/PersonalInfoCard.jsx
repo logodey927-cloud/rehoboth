@@ -139,7 +139,6 @@ export default function PersonalInfoCard({
               fullWidth size="small" name="address"
               value={form.address} onChange={onChange}
               disabled={!editing}
-              required
               multiline
               minRows={2}
               sx={accountFieldSx}

@@ -28,7 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { prepareAppointment, getAvailableDates, getServices, unwrapServicesList, isBookingServiceId, getAutoAssignedTeamMember, getTeamMemberTimeRange, createPayPalIntentOrder, verifyVoucherCode } from "../api/api";
+import { prepareAppointment, getAvailableDates, getServices, unwrapServicesList, getAutoAssignedTeamMember, getTeamMemberTimeRange, createPayPalIntentOrder, verifyVoucherCode, getApiErrorMessage } from "../api/api";
 import { swalError, ensureSweetAlertReady } from "../utils/swal";
 import { useUserAuth } from "../contexts/UserAuthContext";
 import PaymentBreakdown from "./payments/PaymentBreakdown";
@@ -512,11 +512,15 @@ export default function AppointmentForm({
       setCalendarError(null);
       const year = dateObj.year();
       const month = dateObj.month() + 1;
-      
-      // Get service_id from selected service (must be a booking-service UUID)
-      const serviceId = selectedService?.id || null;
 
-      if (!isBookingServiceId(serviceId)) {
+      const serviceItemId = selectedTreatment?.id || null;
+      const duration = getValues("duration") || selectedDuration?.minutes || null;
+      const flatServiceId =
+        selectedService?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedService.id)
+          ? selectedService.id
+          : null;
+
+      if (!serviceItemId && !flatServiceId) {
         setCalendarData({
           year,
           month,
@@ -527,8 +531,13 @@ export default function AppointmentForm({
         });
         return;
       }
-      
-      const res = await getAvailableDates(year, month, serviceId);
+
+      const res = await getAvailableDates(year, month, {
+        serviceItemId,
+        serviceId: flatServiceId,
+        duration,
+        teamMemberId: getValues("team_member_id") || null,
+      });
       if (res.data?.success) {
         // Handle new format with availableDates
         const availableDates = res.data.availableDates || {};
@@ -556,14 +565,13 @@ export default function AppointmentForm({
     }
   };
 
-  // Load availability when service is selected or month changes
+  // Load availability when treatment/duration is selected or month changes
   React.useEffect(() => {
-    // Only load if a service is selected
-    if (selectedService) {
+    if (selectedTreatment?.id) {
       loadMonthAvailability(dayjs());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedService]);
+  }, [selectedTreatment?.id, watchedDuration]);
 
   // Update available time slots when date is selected
   React.useEffect(() => {
@@ -653,6 +661,16 @@ export default function AppointmentForm({
       const ok = await trigger(fields);
       if (!ok) return;
     }
+
+    // Modal flow may skip step 0 — backfill profile fields for logged-in users
+    if (activeStep === 1 && isAuthenticated && user) {
+      if (!getValues("full_name")) setValue("full_name", buildUserFullName());
+      if (!getValues("email")) setValue("email", user.email || "");
+      if (!getValues("phone")) setValue("phone", user.phone || "");
+      if (!getValues("client_gender")) {
+        setValue("client_gender", user.gender || user.client_gender || "");
+      }
+    }
     
     // If moving from Date & Time step, create appointment first
     if (activeStep === 2) {
@@ -734,7 +752,7 @@ export default function AppointmentForm({
       service: serviceName, // Send treatment name for accurate price matching
       service_item_id: selectedTreatment?.id || null, // Exact DB id — bypasses fuzzy lookup for voucher eligibility
       duration: formData.duration, // Duration in minutes
-      client_gender: formData.client_gender, // Client gender for auto-assignment
+      client_gender: formData.client_gender || user?.gender || user?.client_gender || null,
       treatment: formData.treatment, // Treatment/service item name for auto-assignment
       voucher_code: voucherCode && voucherCode.trim() !== "" && voucherValidation?.valid
         ? voucherCode.trim()
@@ -780,7 +798,12 @@ export default function AppointmentForm({
         );
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.error || err.message || "Please check your connection and try again.";
+      const errorMessage = getApiErrorMessage(
+        err,
+        err?.code === "OFFLINE"
+          ? "You are offline. Please reconnect and try again."
+          : "Please check your connection and try again."
+      );
       
       // Determine if it's a network/server error or a validation error
       const isNetworkError = !err.response || 
