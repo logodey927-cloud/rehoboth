@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Grid, CircularProgress, Alert } from "@mui/material";
-import { getMyProfile, updateMyProfile, getMyAppointments, getMyVouchers, unwrapApiData } from "../../api/api";
+import { getMyProfile, updateMyProfile, getMyAppointments, getMyVouchers, unwrapApiData, getApiErrorMessage } from "../../api/api";
 import { useUserAuth } from "../../contexts/UserAuthContext";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { swalSuccess, swalError } from "../../utils/swal";
@@ -122,15 +122,21 @@ export default function MyProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.address?.trim() || form.address.trim().length < 5) {
-      setProfileError("Please enter a valid address (at least 5 characters).");
+    const trimmedAddress = form.address?.trim() || "";
+    if (trimmedAddress && trimmedAddress.length < 5) {
+      setProfileError("Address must be at least 5 characters when provided.");
       return;
     }
     setSaving(true);
     setProfileError("");
     try {
       const payload = {
-        ...form,
+        first_name: form.first_name?.trim(),
+        last_name: form.last_name?.trim(),
+        phone: form.phone?.trim() || null,
+        gender: form.gender || null,
+        address: trimmedAddress || null,
+        date_of_birth: form.date_of_birth || null,
         avatar_url: form.avatar_url || null,
       };
       const res = await updateMyProfile(accessToken, payload);
@@ -142,7 +148,7 @@ export default function MyProfilePage() {
         swalSuccess("Profile Updated", "Your profile has been saved successfully.");
       }
     } catch (err) {
-      const msg = err.response?.data?.error || "Failed to update profile.";
+      const msg = getApiErrorMessage(err, "Failed to update profile.");
       setProfileError(msg);
       swalError("Update Failed", msg);
     } finally {

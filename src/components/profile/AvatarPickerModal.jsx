@@ -71,7 +71,10 @@ export default function AvatarPickerModal({
     try {
       const res = await uploadUserAvatar(accessToken, file);
       if (res.data?.success && res.data.url) {
-        onAvatarChange?.(res.data.url);
+        const url = res.data.url;
+        const profileRes = await updateMyProfile(accessToken, { avatar_url: url });
+        const u = profileRes.data?.user ?? unwrapApiData(profileRes);
+        onAvatarChange?.(u?.avatar_url || url);
         handleClose();
       } else {
         throw new Error(res.data?.error || "Upload failed");

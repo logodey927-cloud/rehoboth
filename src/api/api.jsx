@@ -274,22 +274,30 @@ export const prepareAppointment = (data) => {
 };
 export const getAppointments = () => api.get("/admin/appointments", { params: { limit: 100 } });
 export const getAppointmentById = (id) => api.get(`/admin/appointments/${id}`);
-export const getAvailableDates = (year, month, serviceId = null, teamMemberId = null) => {
-  if (!isBookingServiceId(serviceId)) {
+export const getAvailableDates = (year, month, serviceIdOrOptions = null, teamMemberId = null) => {
+  const opts =
+    serviceIdOrOptions && typeof serviceIdOrOptions === 'object'
+      ? serviceIdOrOptions
+      : { serviceId: serviceIdOrOptions, teamMemberId };
+
+  const params = {
+    year,
+    month,
+    ...(opts.serviceId ? { service_id: opts.serviceId } : {}),
+    ...(opts.serviceItemId ? { service_item_id: opts.serviceItemId } : {}),
+    ...(opts.duration ? { duration: opts.duration } : {}),
+    ...(opts.teamMemberId || teamMemberId ? { team_member_id: opts.teamMemberId || teamMemberId } : {}),
+  };
+
+  if (!params.service_id && !params.service_item_id) {
     return Promise.reject(
-      Object.assign(new Error("Booking availability requires a bookable service."), {
-        code: "INVALID_SERVICE_ID",
+      Object.assign(new Error('Booking availability requires a service or treatment selection.'), {
+        code: 'INVALID_SERVICE_ID',
       })
     );
   }
-  return api.get("/appointments/available-dates", {
-    params: {
-      year,
-      month,
-      service_id: serviceId,
-      ...(teamMemberId ? { team_member_id: teamMemberId } : {}),
-    },
-  });
+
+  return api.get('/appointments/available-dates', { params });
 };
 
 // Team member auto-assignment preview for booking (public)
