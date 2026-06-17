@@ -28,6 +28,14 @@ export function applyLegacyAdminResponse(body, url = '') {
     if (body.meta?.total != null) {
       body.total = body.meta.total;
     }
+  } else if (path.match(/\/admin\/services\/[^/]+\/team-members$/)) {
+    body.teamMembers = body.data?.teamMembers || [];
+  } else if (path.includes('/admin/team')) {
+    body.teamMembers = Array.isArray(body.data) ? body.data : [];
+  } else if (path.endsWith('/vouchers/public')) {
+    body.vouchers = body.data?.vouchers || [];
+  } else if (path.match(/\/vouchers\/public\/[^/]+$/)) {
+    body.voucher = body.data;
   } else if (path === '/services' || /\/admin\/services\/?$/.test(path)) {
     body.services = Array.isArray(body.data) ? body.data : [];
     if (body.data && !Array.isArray(body.data)) {

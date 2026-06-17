@@ -37,7 +37,7 @@ function isPublicApiRead(request) {
   try {
     const url = new URL(request.url);
     if (url.hostname !== apiHostname()) return false;
-    return /^\/(services|team|blog|reviews|vouchers\/purchase|social-links|site-settings\/public|reviews\/stats)/.test(
+    return /^\/(services|team|blog|reviews|vouchers\/public|vouchers\/purchase|social-links|site-settings\/public|reviews\/stats)/.test(
       url.pathname
     );
   } catch {

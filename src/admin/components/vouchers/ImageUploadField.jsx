@@ -6,6 +6,18 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 import { uploadVoucherImage } from "../../../api/api";
 
+const PLACEHOLDER_IMAGE_HOSTS = new Set(["example.com", "www.example.com"]);
+
+function isPlaceholderImageUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  if (url.startsWith("data:image/")) return false;
+  try {
+    return PLACEHOLDER_IMAGE_HOSTS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * ImageUploadField Component
  * Reusable component for image upload with both URL and file upload options
@@ -28,13 +40,18 @@ export default function ImageUploadField({
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  const [preview, setPreview] = useState(value || null);
+  const [preview, setPreview] = useState(
+    value && !isPlaceholderImageUrl(value) ? value : null
+  );
   const fileInputRef = useRef(null);
 
   // Update preview when value changes externally
   React.useEffect(() => {
     if (value && value !== preview) {
-      setPreview(value);
+      setPreview(isPlaceholderImageUrl(value) ? null : value);
+    }
+    if (!value) {
+      setPreview(null);
     }
   }, [value]);
 
@@ -131,7 +148,7 @@ export default function ImageUploadField({
 
   const handleUrlChange = (event) => {
     const url = event.target.value;
-    setPreview(url || null);
+    setPreview(url && !isPlaceholderImageUrl(url) ? url : null);
     if (onChange) {
       onChange(url);
     }

@@ -16,6 +16,7 @@ import {
   Button,
   CircularProgress,
   Skeleton,
+  useMediaQuery,
 } from "@mui/material";
 import {
   CalendarToday,
@@ -26,7 +27,6 @@ import {
   RateReview,
   Refresh,
   CalendarMonth,
-  Block as BlockIcon,
   LocalOffer,
   Payment,
   NotificationsActive,
@@ -47,6 +47,7 @@ import SubscribersDonutChart from "../components/SubscribersDonutChart";
 import StatCard from "../components/StatCard";
 import HeroPageSection from "../../components/sections/HeroPageSection";
 import { getCached, setCached, invalidateCache } from "../utils/adminCache";
+import { useAdminLayout } from "../context/AdminLayoutContext";
 
 const DASHBOARD_CACHE_KEY = "dashboard";
 
@@ -59,7 +60,6 @@ function readDashboardCache() {
 const QUICK_ACTIONS = [
   { label: "Appointments",   icon: CalendarToday, to: "/admin/appointments" },
   { label: "Calendar",       icon: CalendarMonth,  to: "/admin/calendar" },
-  { label: "Blocked Slots",  icon: BlockIcon,      to: "/admin/blocked-time-slots" },
   { label: "New Voucher",    icon: LocalOffer,     to: "/admin/vouchers/new" },
   { label: "Payments",       icon: Payment,        to: "/admin/payments" },
   { label: "Pending Reviews",icon: RateReview,     to: "/admin/reviews?status=pending" },
@@ -88,14 +88,20 @@ const CARD_PAPER_PROPS = {
 
 const DASHBOARD_TABLE_GRID_SX = { display: "flex", width: "100%", minWidth: 0 };
 
-// 4 cards: one row on md+, 2×2 on mobile
-const STAT_SIZE    = { xs: 6, sm: 6, md: 3 };
+// 4 cards per row on md+; 2×2 on mobile and when sidebar is expanded in 900–1130px
+const STAT_SIZE_DEFAULT = { xs: 6, sm: 6, md: 3 };
+const STAT_SIZE_SIDEBAR = { xs: 6, sm: 6, md: 6 };
 const STAT_ITEM_SX = { display: "flex", width: "100%", minWidth: 0 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { sidebarOpen } = useAdminLayout();
+  const isMidViewportWithExpandedSidebar = useMediaQuery(
+    "(min-width:900px) and (max-width:1130px)"
+  ) && sidebarOpen;
+  const statSize = isMidViewportWithExpandedSidebar ? STAT_SIZE_SIDEBAR : STAT_SIZE_DEFAULT;
   const cachedOnMount = readDashboardCache();
 
   // ── Data state (hydrate from session cache when revisiting /admin) ──
@@ -428,7 +434,7 @@ export default function AdminDashboard() {
         {/* ── Top 5 stat cards ── */}
         <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }} sx={{ width: "100%", mb: 3, alignItems: "stretch" }}>
           {topStats.map((card) => (
-            <Grid size={STAT_SIZE} key={card.title} sx={STAT_ITEM_SX}>
+            <Grid size={statSize} key={card.title} sx={STAT_ITEM_SX}>
               <StatCard {...card} loading={showPreloader}>
                 {card.renderChildren?.()}
               </StatCard>
